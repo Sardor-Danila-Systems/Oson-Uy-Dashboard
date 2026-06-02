@@ -18,6 +18,7 @@ import {
   Contract,
   PaymentMethod,
 } from "@/lib/crm-api";
+import { formatPhoneInput, phoneDigitsOnly } from "@/lib/format";
 
 export interface ContractApartmentInput {
   id: number;
@@ -62,7 +63,7 @@ export default function ContractCreateModal({
 }: Props) {
   // ── Customer fields ───────────────────────────────────────────────────────
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("+998");
+  const [phone, setPhone] = useState("+998 ");
   const [passportSeries, setPassportSeries] = useState("");
   const [passportNumber, setPassportNumber] = useState("");
   const [pinfl, setPinfl] = useState("");
@@ -106,7 +107,7 @@ export default function ContractCreateModal({
       setError("Укажите ФИО покупателя");
       return;
     }
-    if (phone.replace(/\D/g, "").length < 9) {
+    if (phoneDigitsOnly(phone).length < 9) {
       setError("Укажите корректный телефон");
       return;
     }
@@ -121,7 +122,7 @@ export default function ContractCreateModal({
       // 1. Create customer (auto buyer)
       const customer = await customersApi.create(projectId, {
         name: name.trim(),
-        phone: phone.trim(),
+        phone: phoneDigitsOnly(phone) || phone.trim(),
         apartmentId: apartment.id,
         passportSeries: passportSeries.trim() || undefined,
         passportNumber: passportNumber.trim() || undefined,
@@ -259,7 +260,7 @@ export default function ContractCreateModal({
             </div>
             <div>
               <label className={labelCls}>Телефон *</label>
-              <input className={inputCls} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+998 90 123 45 67" />
+              <input className={inputCls} value={phone} onChange={(e) => setPhone(formatPhoneInput(e.target.value))} placeholder="+998 __ ___ __ __" autoComplete="tel" />
             </div>
             <div>
               <label className={labelCls}>ПИНФЛ</label>

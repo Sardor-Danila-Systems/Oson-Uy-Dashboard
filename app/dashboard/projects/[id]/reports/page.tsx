@@ -80,10 +80,10 @@ export default function ReportsPage() {
       {/* Breadcrumb */}
       <div className="flex items-center gap-3">
         <Link
-          href={`/dashboard/projects/${projectId}`}
+          href="/dashboard/projects"
           className="flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-[#1E3A8A] transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" /> Проект
+          <ArrowLeft className="h-4 w-4" /> Проекты
         </Link>
         <span className="text-slate-300">/</span>
         <span className="text-sm font-black text-[#1E3A8A]">Отчёты</span>

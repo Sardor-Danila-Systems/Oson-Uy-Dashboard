@@ -262,7 +262,7 @@ export default function LeadsPage() {
               placeholder={t("search")} 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-medium outline-none transition-all focus:border-blue-600 focus:ring-4 focus:ring-blue-600/5"
+              className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-blue-600 focus:ring-4 focus:ring-blue-600/5"
             />
           </div>
           <select

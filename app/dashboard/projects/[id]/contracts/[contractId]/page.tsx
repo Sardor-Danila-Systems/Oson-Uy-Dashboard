@@ -13,6 +13,7 @@ import {
   Plus,
 } from "lucide-react";
 import { contractsApi, Contract, PaymentMethod } from "@/lib/crm-api";
+import { formatMoneyInput, parseMoneyInput } from "@/lib/currency";
 
 const STATUS_LABEL: Record<string, string> = {
   ACTIVE: "Активный", BOOKED: "Забронирован",
@@ -69,7 +70,7 @@ export default function ContractDetailPage() {
     setPayLoading(true);
     try {
       const updated = await contractsApi.addPayment(projectId, contractId, {
-        amountUzs: Number(payAmount.replace(/\s/g, "")),
+        amountUzs: parseMoneyInput(payAmount),
         paidAt: payDate,
         comment: payComment || undefined,
         type: "INSTALLMENT",
@@ -232,23 +233,24 @@ export default function ContractDetailPage() {
                     <div className="flex gap-2">
                       <input
                         value={payAmount}
-                        onChange={(e) => setPayAmount(e.target.value)}
-                        placeholder="Сумма (сум)"
+                        onChange={(e) => setPayAmount(formatMoneyInput(e.target.value))}
+                        placeholder="0"
+                        inputMode="numeric"
                         required
-                        className="flex-1 h-9 px-3 text-sm font-bold border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1E3A8A]/20 focus:border-[#1E3A8A]"
+                        className="flex-1 h-9 px-3 text-sm font-bold text-slate-900 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1E3A8A]/20 focus:border-[#1E3A8A]"
                       />
                       <input
                         type="date"
                         value={payDate}
                         onChange={(e) => setPayDate(e.target.value)}
-                        className="h-9 px-2 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1E3A8A]/20 focus:border-[#1E3A8A]"
+                        className="h-9 px-2 text-sm text-slate-900 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1E3A8A]/20 focus:border-[#1E3A8A]"
                       />
                     </div>
                     <input
                       value={payComment}
                       onChange={(e) => setPayComment(e.target.value)}
                       placeholder="Комментарий (необязательно)"
-                      className="w-full h-9 px-3 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1E3A8A]/20 focus:border-[#1E3A8A]"
+                      className="w-full h-9 px-3 text-sm text-slate-900 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1E3A8A]/20 focus:border-[#1E3A8A]"
                     />
                     <button
                       type="submit"

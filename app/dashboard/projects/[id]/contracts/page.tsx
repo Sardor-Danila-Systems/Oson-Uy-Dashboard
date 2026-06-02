@@ -104,10 +104,10 @@ export default function ContractsPage() {
       {/* Breadcrumb */}
       <div className="flex items-center gap-3">
         <Link
-          href={`/dashboard/projects/${projectId}`}
+          href="/dashboard/projects"
           className="flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-[#1E3A8A] transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" /> Проект
+          <ArrowLeft className="h-4 w-4" /> Проекты
         </Link>
         <span className="text-slate-300">/</span>
         <span className="text-sm font-black text-[#1E3A8A]">Договоры</span>
@@ -157,13 +157,13 @@ export default function ContractsPage() {
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="Поиск по №, клиенту, квартире…"
-            className="w-full pl-10 pr-4 h-10 text-sm font-medium border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1E3A8A]/20 focus:border-[#1E3A8A]"
+            className="w-full pl-10 pr-4 h-10 text-sm font-medium text-slate-900 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1E3A8A]/20 focus:border-[#1E3A8A]"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value as ContractStatus | ""); setPage(1); }}
-          className="h-10 px-3 text-sm font-bold border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1E3A8A]/20 focus:border-[#1E3A8A]"
+          className="h-10 px-3 text-sm font-bold text-slate-900 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1E3A8A]/20 focus:border-[#1E3A8A]"
         >
           <option value="">Все статусы</option>
           {(Object.keys(STATUS_LABEL) as ContractStatus[]).map((s) => (
