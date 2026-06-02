@@ -31,6 +31,8 @@ import {
   LayoutGrid,
   Users,
   Lock,
+  FileText,
+  BarChart2,
 } from "lucide-react";
 import { UZB_LOCATIONS } from "@/lib/locations";
 import { useTranslations, useLocale } from "next-intl";
@@ -417,6 +419,34 @@ export default function ProjectsPage() {
                             title={t("ultraUpgradeHint")}
                             aria-label={t("ultraOnlyCustomers")}
                           >
+                            <Lock className="h-4 w-4" />
+                          </Link>
+                        )}
+                        {ultraOk ? (
+                          <Link
+                            href={`/dashboard/projects/${project.id}/contracts`}
+                            className={openCls}
+                            title="Договоры"
+                            aria-label="Договоры"
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Link>
+                        ) : (
+                          <Link href="/dashboard/subscriptions" className={lockCls} title="Только ULTIMATE">
+                            <Lock className="h-4 w-4" />
+                          </Link>
+                        )}
+                        {ultraOk ? (
+                          <Link
+                            href={`/dashboard/projects/${project.id}/reports`}
+                            className={openCls}
+                            title="Отчёты"
+                            aria-label="Отчёты"
+                          >
+                            <BarChart2 className="h-4 w-4" />
+                          </Link>
+                        ) : (
+                          <Link href="/dashboard/subscriptions" className={lockCls} title="Только ULTIMATE">
                             <Lock className="h-4 w-4" />
                           </Link>
                         )}
