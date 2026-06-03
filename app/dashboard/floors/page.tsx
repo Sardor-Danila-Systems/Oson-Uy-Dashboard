@@ -16,12 +16,11 @@ import {
   DollarSign,
   Image as ImageIcon,
   FileText,
+  ExternalLink,
   Loader2,
   Edit2,
   Trash2,
   Building2,
-  FileText,
-  ExternalLink,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -147,11 +146,9 @@ export default function FloorsPage() {
   }, []);
 
   const uploadLayoutFile = async (file: File) => {
-    const isPdf = file.type === "application/pdf";
-    const endpoint = isPdf ? "/upload/file" : "/upload/image";
     const formData = new FormData();
     formData.append("file", file);
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    const response = await fetch(`${API_URL}/upload/image`, {
       method: "POST",
       headers: adminHeaders(false),
       body: formData,
