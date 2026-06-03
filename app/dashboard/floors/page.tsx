@@ -9,6 +9,7 @@ import {
   Maximize2,
   DollarSign,
   Image as ImageIcon,
+  FileText,
   Loader2,
   Edit2,
   Trash2,
@@ -446,13 +447,18 @@ export default function FloorsPage() {
                     <div className="group relative mb-3 cursor-pointer">
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/*,application/pdf"
                         onChange={(e) => void onLayoutPick(e, i)}
                         className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
                       />
                       <div className="flex h-28 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-white transition-all group-hover:bg-slate-50">
                         {uploadingLayoutIdx === i ? (
                           <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                        ) : line.imageUrl.endsWith(".pdf") ? (
+                          <div className="flex flex-col items-center gap-1">
+                            <FileText className="h-8 w-8 text-red-400" />
+                            <span className="text-[10px] font-bold text-slate-500">PDF</span>
+                          </div>
                         ) : line.imageUrl ? (
                           <img
                             src={line.imageUrl}
