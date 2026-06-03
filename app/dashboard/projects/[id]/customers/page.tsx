@@ -18,6 +18,7 @@ import { apiFetch } from "@/lib/api";
 import { formatMoneyInput, formatUzs, parseMoneyInput } from "@/lib/currency";
 import { formatPhoneInput, formatPhoneNumber, phoneDigitsOnly } from "@/lib/format";
 import { hasUltimateWorkspaceAccess } from "@/lib/subscription-access";
+import { contractsApi } from "@/lib/crm-api";
 
 type ApartmentOpt = {
   id: number;
@@ -106,6 +107,8 @@ export default function ProjectCustomersPage() {
     new Date().toISOString().slice(0, 10),
   );
   const [payComment, setPayComment] = useState("");
+  const [payContractId, setPayContractId] = useState<number | null>(null);
+  const [payContractNumber, setPayContractNumber] = useState<string | null>(null);
 
   useEffect(() => {
     if (!editRow) return;
@@ -145,10 +148,31 @@ export default function ProjectCustomersPage() {
   useEffect(() => {
     if (payOpenId == null) {
       setPayDetail(null);
+      setPayContractId(null);
+      setPayContractNumber(null);
       return;
     }
     void loadPayDetail(payOpenId);
-  }, [payOpenId, loadPayDetail]);
+
+    // Find linked contract for this customer's apartment to sync payments
+    const customer = rows.find((r) => r.id === payOpenId);
+    if (customer?.apartmentId) {
+      void (async () => {
+        try {
+          const res = await contractsApi.list(projectId, { limit: "200" });
+          const linked = res.items.find(
+            (c) => c.apartment?.id === customer.apartmentId,
+          );
+          if (linked) {
+            setPayContractId(linked.id);
+            setPayContractNumber(linked.number);
+          }
+        } catch {
+          /* non-fatal */
+        }
+      })();
+    }
+  }, [payOpenId, loadPayDetail, rows, projectId]);
 
   const load = useCallback(async () => {
     if (!projectId || Number.isNaN(projectId)) return;
@@ -295,17 +319,38 @@ export default function ProjectCustomersPage() {
     try {
       const paidAt = new Date(payDate);
       paidAt.setHours(12, 0, 0, 0);
+      const amountUzs = parseMoneyInput(payAmount);
+      const paidAtIso = paidAt.toISOString();
+      const commentBody = payComment.trim()
+        ? { comment: payComment.trim() }
+        : {};
+
       await apiFetch(
         `/projects/${projectId}/customers/${payOpenId}/payments`,
         {
           method: "POST",
           body: JSON.stringify({
-            amountUzs: parseMoneyInput(payAmount),
-            paidAt: paidAt.toISOString(),
-            ...(payComment.trim() ? { comment: payComment.trim() } : {}),
+            amountUzs,
+            paidAt: paidAtIso,
+            ...commentBody,
           }),
         },
       );
+
+      // Also sync to linked contract so payment appears in analytics
+      if (payContractId) {
+        try {
+          await contractsApi.addPayment(projectId, payContractId, {
+            amountUzs,
+            paidAt: paidAtIso,
+            type: "INSTALLMENT",
+            ...commentBody,
+          });
+        } catch {
+          /* non-fatal — customer payment already saved */
+        }
+      }
+
       setPayAmount("");
       setPayComment("");
       await loadPayDetail(payOpenId);
@@ -627,6 +672,11 @@ export default function ProjectCustomersPage() {
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-600">
                     {t("paymentAdd")}
                   </p>
+                  {payContractNumber && (
+                    <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[10px] font-bold text-emerald-800">
+                      Оплата будет учтена в договоре №{payContractNumber} и отразится в аналитике
+                    </p>
+                  )}
                   <label className="block space-y-1">
                     <span className="text-[10px] font-black uppercase text-slate-500">
                       {t("paymentAmount")}

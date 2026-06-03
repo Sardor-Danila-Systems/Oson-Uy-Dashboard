@@ -27,8 +27,9 @@ import {
 } from "@/lib/currency";
 import { formatPhoneNumber } from "@/lib/format";
 import { hasUltimateWorkspaceAccess } from "@/lib/subscription-access";
+import ContractCreateModal from "@/components/crm/ContractCreateModal";
 
-type AptStatus = "AVAILABLE" | "RESERVED" | "SOLD";
+type AptStatus = "AVAILABLE" | "RESERVED" | "SOLD" | "INSTALLMENT" | "MORTGAGE" | "UNAVAILABLE";
 
 type Apartment = {
   id: number;
@@ -139,9 +140,21 @@ function previewNumbers(sections: BulkSectionForm[], max = 8): string[] {
 }
 
 const statusStyle: Record<AptStatus, string> = {
-  AVAILABLE: "bg-emerald-500/90 text-white border-emerald-600",
-  RESERVED: "bg-amber-400/95 text-slate-900 border-amber-500",
-  SOLD: "bg-red-500/90 text-white border-red-600",
+  AVAILABLE:   "bg-emerald-500/90 text-white border-emerald-600",
+  RESERVED:    "bg-amber-400/95 text-slate-900 border-amber-500",
+  SOLD:        "bg-red-500/90 text-white border-red-600",
+  INSTALLMENT: "bg-blue-500/90 text-white border-blue-600",
+  MORTGAGE:    "bg-purple-500/90 text-white border-purple-600",
+  UNAVAILABLE: "bg-slate-400/90 text-white border-slate-500",
+};
+
+const STATUS_LABEL: Record<AptStatus, string> = {
+  AVAILABLE:   "Свободна",
+  RESERVED:    "Забронирована",
+  SOLD:        "Продана",
+  INSTALLMENT: "В рассрочке",
+  MORTGAGE:    "В ипотеке",
+  UNAVAILABLE: "Недоступна",
 };
 
 /** Колонка шахматки: полный sectionKey в БД; «блок|подъезд» для двухрядной шапки. */
@@ -197,6 +210,7 @@ export default function ChessboardPage() {
   const [editLayoutUrl, setEditLayoutUrl] = useState("");
   const [editModelUrl, setEditModelUrl] = useState("");
   const [unitSaving, setUnitSaving] = useState(false);
+  const [contractModalOpen, setContractModalOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!projectId || Number.isNaN(projectId)) return;
@@ -321,6 +335,16 @@ export default function ChessboardPage() {
     for (const a of filteredList) set.add(a.floor);
     return [...set].sort((a, b) => b - a);
   }, [filteredList]);
+
+  // Группировка колонок по блокам для горизонтальной шахматки (как в UySot)
+  const blocks = useMemo(() => {
+    const map = new Map<string, typeof matrixColumns>();
+    for (const col of matrixColumns) {
+      if (!map.has(col.block)) map.set(col.block, []);
+      map.get(col.block)!.push(col);
+    }
+    return [...map.entries()].map(([block, cols]) => ({ block, cols }));
+  }, [matrixColumns]);
 
   const unitsByCell = useMemo(() => {
     const map = new Map<string, Apartment[]>();
@@ -667,18 +691,24 @@ export default function ChessboardPage() {
             <LayoutGrid className="h-4 w-4" />
             {t("bulk.open")}
           </button>
-          <div className="flex flex-wrap gap-3 text-xs font-bold uppercase tracking-widest">
-            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1.5 text-emerald-800">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              {t("legend.free")}
+          <div className="flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-widest">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-emerald-800">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" /> Свободна
             </span>
-            <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1.5 text-amber-900">
-              <span className="h-2 w-2 rounded-full bg-amber-400" />
-              {t("legend.reserved")}
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-amber-900">
+              <span className="h-2 w-2 rounded-full bg-amber-400" /> Забронирована
             </span>
-            <span className="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1.5 text-red-800">
-              <span className="h-2 w-2 rounded-full bg-red-500" />
-              {t("legend.sold")}
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-1 text-red-800">
+              <span className="h-2 w-2 rounded-full bg-red-500" /> Продана
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-2.5 py-1 text-blue-800">
+              <span className="h-2 w-2 rounded-full bg-blue-500" /> В рассрочке
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-100 px-2.5 py-1 text-purple-800">
+              <span className="h-2 w-2 rounded-full bg-purple-500" /> В ипотеке
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">
+              <span className="h-2 w-2 rounded-full bg-slate-400" /> Недоступна
             </span>
           </div>
         </div>
@@ -830,60 +860,51 @@ export default function ChessboardPage() {
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-[2rem] border-2 border-slate-200 bg-white shadow-sm">
-            <table
-              className="w-full border-collapse text-sm"
-              style={{
-                minWidth: `${48 + Math.max(matrixColumns.length, 1) * 44}px`,
-              }}
-            >
-              <thead>
-                <tr className="bg-slate-100">
-                  <th
-                    rowSpan={2}
-                    className="sticky left-0 z-20 w-12 min-w-12 border border-slate-200 bg-slate-100 px-1 py-2 text-center text-[9px] font-black uppercase leading-tight text-slate-500"
-                  >
-                    <Layers className="mx-auto mb-0.5 h-3.5 w-3.5" />
-                  </th>
-                  {blockHeaderGroups.map((g, gi) => (
-                    <th
-                      key={`blk-${gi}-${g.block || "__"}`}
-                      colSpan={g.count}
-                      className="border border-slate-200 px-1 py-1.5 text-center text-[10px] font-black uppercase tracking-tight text-[#1E3A8A]"
-                    >
-                      {g.block
-                        ? t("blockTitle", { code: g.block })
-                        : t("blockDefault")}
-                    </th>
-                  ))}
-                </tr>
-                <tr className="bg-slate-50">
-                  {matrixColumns.map((col) => (
-                    <th
-                      key={col.fullKey || "__root__"}
-                      className="min-w-[44px] max-w-[52px] border border-slate-200 px-0.5 py-1 text-center text-[8px] font-black uppercase leading-tight text-slate-600"
-                    >
-                      {col.entrance
-                        ? t("entranceCol", { n: col.entrance })
-                        : t("entranceDash")}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
+          <div className="overflow-x-auto rounded-[2rem] border border-slate-100 bg-white p-4 shadow-sm">
+            <div className="flex gap-4">
+              {/* Ось этажей (липкая слева) */}
+              <div className="sticky left-0 z-10 shrink-0 bg-white">
+                <div className="h-11" />
                 {matrixFloors.map((floor) => (
-                  <tr key={floor}>
-                    <td className="sticky left-0 z-10 w-12 min-w-12 border border-slate-200 bg-slate-50 px-1 py-1 text-center text-[11px] font-black text-slate-700 shadow-[2px_0_8px_-2px_rgba(0,0,0,0.08)]">
-                      {floor}
-                    </td>
-                    {matrixColumns.map((col) => {
-                      const units = cellUnits(floor, col.fullKey);
-                      return (
-                        <td
-                          key={`${floor}-${col.fullKey || ""}`}
-                          className="align-middle border border-slate-200 bg-white p-0.5"
-                        >
-                          <div className="flex max-w-[52px] flex-wrap justify-center gap-0.5 py-0.5">
+                  <div
+                    key={floor}
+                    className="flex h-10 items-center justify-end pr-2 text-[11px] font-black text-slate-400"
+                  >
+                    {floor}
+                  </div>
+                ))}
+              </div>
+
+              {/* Блоки рядом по горизонтали */}
+              {blocks.map(({ block, cols }) => (
+                <div key={block || "__root__"} className="shrink-0">
+                  {/* Заголовок блока */}
+                  <div className="mb-0.5 flex h-6 items-center justify-center rounded-lg bg-slate-100 px-3 text-[10px] font-black uppercase tracking-wider text-[#1E3A8A]">
+                    {block ? t("blockTitle", { code: block }) : t("blockDefault")}
+                  </div>
+
+                  {/* Подзаголовок: подъезды */}
+                  <div className="mb-1 flex gap-3">
+                    {cols.map((col) => (
+                      <div
+                        key={col.fullKey || "__"}
+                        className="flex-1 text-center text-[8px] font-bold uppercase leading-none text-slate-400"
+                      >
+                        {col.entrance ? t("entranceCol", { n: col.entrance }) : ""}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Этажи */}
+                  {matrixFloors.map((floor) => (
+                    <div key={floor} className="flex h-10 items-center gap-3">
+                      {cols.map((col) => {
+                        const units = cellUnits(floor, col.fullKey);
+                        return (
+                          <div
+                            key={`${floor}-${col.fullKey || ""}`}
+                            className="flex justify-center gap-1"
+                          >
                             {units.map((a) => {
                               const tipPrice =
                                 a.priceUzs != null
@@ -900,20 +921,20 @@ export default function ChessboardPage() {
                                     area: a.areaSqm,
                                     price: tipPrice,
                                   })}
-                                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded border text-[9px] font-black leading-none shadow-sm transition hover:z-10 hover:ring-2 hover:ring-[#1E3A8A]/30 ${statusStyle[a.status]}`}
+                                  className={`flex h-8 w-14 shrink-0 items-center justify-center rounded-md text-center text-[9px] font-black leading-[1.05] shadow-sm transition hover:z-10 hover:scale-110 hover:shadow-md hover:ring-2 hover:ring-offset-1 hover:ring-[#1E3A8A]/50 ${statusStyle[a.status]}`}
                                 >
                                   {a.number}
                                 </button>
                               );
                             })}
                           </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -1212,9 +1233,21 @@ export default function ChessboardPage() {
                           <span
                             className={`rounded-full border-2 px-3 py-1 text-[10px] font-black uppercase tracking-wider ${statusStyle[selected.status]}`}
                           >
-                            {t(`statuses.${selected.status}`)}
+                            {STATUS_LABEL[selected.status]}
                           </span>
                         </div>
+
+                        {(selected.status === "AVAILABLE" ||
+                          selected.status === "RESERVED") && (
+                          <button
+                            type="button"
+                            onClick={() => setContractModalOpen(true)}
+                            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#F97316] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-orange-900/20 hover:bg-orange-600 transition active:scale-[0.98]"
+                          >
+                            <CreditCard className="h-4 w-4" />
+                            Оформить договор
+                          </button>
+                        )}
                         {selected.priceUzs != null ? (
                           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
                             <p className="text-[10px] font-black uppercase tracking-widest text-emerald-800">
@@ -1497,19 +1530,19 @@ export default function ChessboardPage() {
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {(
-                        ["AVAILABLE", "RESERVED", "SOLD"] as AptStatus[]
+                        ["AVAILABLE", "RESERVED", "SOLD", "INSTALLMENT", "MORTGAGE", "UNAVAILABLE"] as AptStatus[]
                       ).map((s) => (
                         <button
                           key={s}
                           type="button"
                           onClick={() => void patchStatus(selected.id, s)}
-                          className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wider border-2 ${
+                          className={`rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-wider border-2 ${
                             selected.status === s
                               ? statusStyle[s]
                               : "border-slate-200 text-slate-500 bg-white"
                           }`}
                         >
-                          {t(`statuses.${s}`)}
+                          {STATUS_LABEL[s]}
                         </button>
                       ))}
                     </div>
@@ -1591,6 +1624,27 @@ export default function ChessboardPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {contractModalOpen && selected && (
+        <ContractCreateModal
+          projectId={projectId}
+          apartment={{
+            id: selected.id,
+            number: selected.number,
+            floor: selected.floor,
+            sectionKey: selected.sectionKey,
+            rooms: selected.rooms,
+            areaSqm: selected.areaSqm,
+            priceUzs: selected.priceUzs,
+          }}
+          onClose={() => setContractModalOpen(false)}
+          onCreated={() => {
+            setContractModalOpen(false);
+            setSelected(null);
+            void load();
+          }}
+        />
       )}
     </div>
   );
