@@ -1,7 +1,13 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { API_URL, ApiAuthError, apiFetch, clearSession, getToken } from "@/lib/api";
+import {
+  API_URL,
+  ApiAuthError,
+  apiFetch,
+  clearSession,
+  getToken,
+} from "@/lib/api";
 import { formatMoneyInput, formatUzs, parseMoneyInput } from "@/lib/currency";
 import {
   Plus,
@@ -14,6 +20,8 @@ import {
   Edit2,
   Trash2,
   Building2,
+  FileText,
+  ExternalLink,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -31,6 +39,14 @@ type ProjectFloorLayout = {
   sortOrder?: number;
 };
 
+const isPdfUrl = (url: string) => {
+  try {
+    return new URL(url).pathname.toLowerCase().endsWith(".pdf");
+  } catch {
+    return url.toLowerCase().endsWith(".pdf");
+  }
+};
+
 type ProjectFloor = {
   id: number;
   projectId: number;
@@ -42,13 +58,19 @@ type ProjectFloor = {
   project?: { id: number; name: string };
 };
 
+type LayoutLine = {
+  imageUrl: string;
+  title: string;
+  fileName?: string;
+};
+
 type FloorForm = {
   projectId: number;
   floor: string;
   pricePerM2: string;
   title: string;
   areaLines: string[];
-  layoutLines: { imageUrl: string; title: string }[];
+  layoutLines: LayoutLine[];
 };
 
 const adminHeaders = (contentType = true) => ({
@@ -62,7 +84,7 @@ const emptyForm = (projectId: number): FloorForm => ({
   pricePerM2: "",
   title: "",
   areaLines: [""],
-  layoutLines: [{ imageUrl: "", title: "" }],
+  layoutLines: [{ imageUrl: "", title: "", fileName: "" }],
 });
 
 export default function FloorsPage() {
@@ -124,19 +146,33 @@ export default function FloorsPage() {
     void loadData();
   }, []);
 
-  const uploadImageFile = async (file: File) => {
+  const uploadLayoutFile = async (file: File) => {
+    const isPdf = file.type === "application/pdf";
+    const endpoint = isPdf ? "/upload/file" : "/upload/image";
     const formData = new FormData();
     formData.append("file", file);
-    const response = await fetch(`${API_URL}/upload/image`, {
+    const response = await fetch(`${API_URL}${endpoint}`, {
       method: "POST",
       headers: adminHeaders(false),
       body: formData,
     });
     if (!response.ok) {
-      throw new Error(`Error uploading image (${response.status})`);
+      throw new Error(`Ошибка загрузки файла (${response.status})`);
     }
     const data = (await response.json()) as { url: string };
     return data.url;
+  };
+
+  const applyLayoutFile = (file: File, url: string, index: number) => {
+    setForm((current) => {
+      const layoutLines = [...current.layoutLines];
+      layoutLines[index] = {
+        ...layoutLines[index],
+        imageUrl: url,
+        fileName: file.name,
+      };
+      return { ...current, layoutLines };
+    });
   };
 
   const onLayoutPick = async (
@@ -148,17 +184,43 @@ export default function FloorsPage() {
     try {
       setUploadingLayoutIdx(index);
       setError(null);
-      const url = await uploadImageFile(file);
-      setForm((current) => {
-        const layoutLines = [...current.layoutLines];
-        layoutLines[index] = { ...layoutLines[index], imageUrl: url };
-        return { ...current, layoutLines };
-      });
+      const url = await uploadLayoutFile(file);
+      applyLayoutFile(file, url, index);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setUploadingLayoutIdx(null);
       event.target.value = "";
+    }
+  };
+
+  const onLayoutDrop = async (
+    event: React.DragEvent<HTMLDivElement>,
+    index: number,
+  ) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files?.[0];
+    if (!file) return;
+    const allowed = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "application/pdf",
+    ];
+    if (!allowed.includes(file.type)) {
+      setError("Поддерживаются только изображения (JPG, PNG, WEBP) и PDF");
+      return;
+    }
+    try {
+      setUploadingLayoutIdx(index);
+      setError(null);
+      const url = await uploadLayoutFile(file);
+      applyLayoutFile(file, url, index);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setUploadingLayoutIdx(null);
     }
   };
 
@@ -210,9 +272,7 @@ export default function FloorsPage() {
       );
       if (!response.ok) {
         const errText = await response.text();
-        throw new Error(
-          errText || `Failed to save floor (${response.status})`,
-        );
+        throw new Error(errText || `Failed to save floor (${response.status})`);
       }
 
       await loadData();
@@ -247,9 +307,7 @@ export default function FloorsPage() {
   };
 
   const areasLabel = (fl: ProjectFloor) => {
-    const a = (fl.areaOptions ?? [])
-      .map((o) => o.areaSqm)
-      .filter((n) => n > 0);
+    const a = (fl.areaOptions ?? []).map((o) => o.areaSqm).filter((n) => n > 0);
     if (!a.length) return "—";
     return `${a.map((n) => (Number.isInteger(n) ? String(n) : n.toFixed(1))).join(", ")} м²`;
   };
@@ -444,20 +502,36 @@ export default function FloorsPage() {
                     key={i}
                     className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4"
                   >
-                    <div className="group relative mb-3 cursor-pointer">
+                    <div
+                      className="group relative mb-3 cursor-pointer"
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => void onLayoutDrop(e, i)}
+                    >
                       <input
                         type="file"
-                        accept="image/*,application/pdf"
+                        accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
                         onChange={(e) => void onLayoutPick(e, i)}
                         className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
                       />
-                      <div className="flex h-28 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-white transition-all group-hover:bg-slate-50">
+                      <div className="flex h-28 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-white transition-all group-hover:border-blue-300 group-hover:bg-blue-50/30">
                         {uploadingLayoutIdx === i ? (
-                          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                        ) : line.imageUrl.endsWith(".pdf") ? (
-                          <div className="flex flex-col items-center gap-1">
-                            <FileText className="h-8 w-8 text-red-400" />
-                            <span className="text-[10px] font-bold text-slate-500">PDF</span>
+                          <>
+                            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                            <span className="text-xs font-bold text-blue-400">
+                              Загрузка…
+                            </span>
+                          </>
+                        ) : line.imageUrl && isPdfUrl(line.imageUrl) ? (
+                          <div className="flex w-full flex-col items-center justify-center gap-1.5 px-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-100">
+                              <FileText className="h-5 w-5 text-red-600" />
+                            </div>
+                            <span className="line-clamp-1 max-w-full text-center text-[11px] font-bold text-slate-600">
+                              {line.fileName ?? "PDF файл"}
+                            </span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-red-500">
+                              PDF
+                            </span>
                           </div>
                         ) : line.imageUrl ? (
                           <img
@@ -467,14 +541,32 @@ export default function FloorsPage() {
                           />
                         ) : (
                           <>
-                            <ImageIcon className="h-6 w-6 text-slate-300" />
+                            <div className="flex gap-2">
+                              <ImageIcon className="h-5 w-5 text-slate-300" />
+                              <FileText className="h-5 w-5 text-slate-300" />
+                            </div>
                             <span className="text-xs font-bold text-slate-400">
                               {t("form.uploadLayout")}
+                            </span>
+                            <span className="text-[10px] text-slate-300">
+                              JPG · PNG · WEBP · PDF
                             </span>
                           </>
                         )}
                       </div>
                     </div>
+                    {line.imageUrl && isPdfUrl(line.imageUrl) && (
+                      <a
+                        href={line.imageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="mb-2 flex items-center gap-1.5 text-[11px] font-bold text-blue-600 hover:underline"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Открыть PDF
+                      </a>
+                    )}
                     <input
                       type="text"
                       value={line.title}
@@ -497,7 +589,9 @@ export default function FloorsPage() {
                         onClick={() =>
                           setForm((f) => ({
                             ...f,
-                            layoutLines: f.layoutLines.filter((_, j) => j !== i),
+                            layoutLines: f.layoutLines.filter(
+                              (_, j) => j !== i,
+                            ),
                           }))
                         }
                         className="mt-2 text-[10px] font-black uppercase text-red-500"
@@ -522,7 +616,11 @@ export default function FloorsPage() {
                 disabled={saving || uploadingLayoutIdx != null}
                 className="h-16 flex-1 rounded-2xl bg-[#F97316] font-black uppercase tracking-widest text-white shadow-xl shadow-orange-900/10 transition-all hover:bg-orange-600 disabled:bg-slate-100 disabled:text-slate-400"
               >
-                {saving ? t("form.saving") : editingId ? t("form.save") : t("form.addNew")}
+                {saving
+                  ? t("form.saving")
+                  : editingId
+                    ? t("form.save")
+                    : t("form.addNew")}
               </button>
               {editingId && (
                 <button
@@ -560,13 +658,22 @@ export default function FloorsPage() {
                   </span>
                 </div>
                 <div className="mb-4 flex items-start justify-between gap-4">
-                  <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
                     {fl.layouts?.[0]?.imageUrl ? (
-                      <img
-                        src={fl.layouts[0].imageUrl}
-                        className="h-full w-full object-cover"
-                        alt=""
-                      />
+                      isPdfUrl(fl.layouts[0].imageUrl) ? (
+                        <div className="flex flex-col items-center justify-center gap-1">
+                          <FileText className="h-7 w-7 text-red-400" />
+                          <span className="text-[9px] font-black uppercase tracking-wider text-red-400">
+                            PDF
+                          </span>
+                        </div>
+                      ) : (
+                        <img
+                          src={fl.layouts[0].imageUrl}
+                          className="h-full w-full object-cover"
+                          alt=""
+                        />
+                      )
                     ) : (
                       <Layers className="h-8 w-8 text-slate-200" />
                     )}
@@ -615,17 +722,19 @@ export default function FloorsPage() {
                           areaLines:
                             fl.areaOptions?.length &&
                             fl.areaOptions.some((o) => o.areaSqm > 0)
-                              ? fl.areaOptions.map((o) =>
-                                  String(o.areaSqm),
-                                )
+                              ? fl.areaOptions.map((o) => String(o.areaSqm))
                               : [""],
                           layoutLines:
                             fl.layouts?.length > 0
                               ? fl.layouts.map((l) => ({
                                   imageUrl: l.imageUrl,
                                   title: l.title ?? "",
+                                  fileName: isPdfUrl(l.imageUrl)
+                                    ? (l.imageUrl.split("/").pop() ??
+                                      "PDF файл")
+                                    : "",
                                 }))
-                              : [{ imageUrl: "", title: "" }],
+                              : [{ imageUrl: "", title: "", fileName: "" }],
                         });
                       }}
                       className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-400 shadow-sm transition-all hover:bg-[#1E3A8A] hover:text-white"

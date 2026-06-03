@@ -558,13 +558,22 @@
       "companyLegalAddress": "Юридический адрес",
       "companyOfficeAddress": "Офис / приёмная",
       "companyDescription": "О компании",
-      "companyLogo": "Логотип (файл или URL)",
+      "companyLogo": "Логотип",
       "companySave": "Сохранить данные",
       "companySaved": "Сохранено",
       "companySaveError": "Не удалось сохранить",
       "companyLogoError": "Не удалось загрузить логотип",
       "telegramCopied": "Ссылка скопирована в буфер обмена.",
-      "telegramRefreshHint": "После нажатия «Start» в Telegram обновите эту страницу — статус подключения обновится."
+      "telegramRefreshHint": "После нажатия «Start» в Telegram обновите эту страницу — статус подключения обновится.",
+      "editProfile": "Изменить профиль",
+      "cancel": "Отмена",
+      "uploadLogo": "Загрузить фото",
+      "replaceLogo": "Заменить фото",
+      "notSpecified": "Не указано",
+      "contactsTitle": "Контакты",
+      "aboutTitle": "О компании",
+      "subscriptionsTitle": "Подписки",
+      "noDescription": "Описание компании пока не заполнено."
     }
   }
 }

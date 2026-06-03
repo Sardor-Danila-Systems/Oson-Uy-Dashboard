@@ -558,13 +558,22 @@
       "companyLegalAddress": "Yuridik manzil",
       "companyOfficeAddress": "Ofis / qabulxona",
       "companyDescription": "Kompaniya haqida",
-      "companyLogo": "Logotip (fayl yoki URL)",
+      "companyLogo": "Logotip",
       "companySave": "Saqlash",
       "companySaved": "Saqlandi",
       "companySaveError": "Saqlab bo'lmadi",
       "companyLogoError": "Logotipni yuklab bo'lmadi",
       "telegramCopied": "Havola buferga nusxalandi.",
-      "telegramRefreshHint": "Telegramda «Start» bosgandan keyin sahifani yangilang — ulanish holati yangilanadi."
+      "telegramRefreshHint": "Telegramda «Start» bosgandan keyin sahifani yangilang — ulanish holati yangilanadi.",
+      "editProfile": "Profilni tahrirlash",
+      "cancel": "Bekor qilish",
+      "uploadLogo": "Rasm yuklash",
+      "replaceLogo": "Rasmni almashtirish",
+      "notSpecified": "Ko'rsatilmagan",
+      "contactsTitle": "Kontaktlar",
+      "aboutTitle": "Kompaniya haqida",
+      "subscriptionsTitle": "Obunalar",
+      "noDescription": "Kompaniya tavsifi hali to'ldirilmagan."
     }
   }
 }
