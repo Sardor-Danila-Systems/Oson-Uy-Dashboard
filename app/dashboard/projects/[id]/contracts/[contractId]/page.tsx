@@ -11,8 +11,10 @@ import {
   CheckCircle2,
   Clock,
   Plus,
+  Loader2,
 } from "lucide-react";
 import { contractsApi, Contract, PaymentMethod } from "@/lib/crm-api";
+import { getToken } from "@/lib/api";
 import { formatMoneyInput, parseMoneyInput } from "@/lib/currency";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -48,6 +50,7 @@ export default function ContractDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"history" | "schedule">("history");
   const [downloadOpen, setDownloadOpen] = useState(false);
+  const [downloadingType, setDownloadingType] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState("");
   const [payDate, setPayDate] = useState(new Date().toISOString().split("T")[0]);
   const [payComment, setPayComment] = useState("");
@@ -88,14 +91,43 @@ export default function ContractDetailPage() {
     setContract(await contractsApi.removePayment(projectId, contractId, paymentId));
   };
 
-  const handleDownload = (type: string, lang = "uz") => {
-    const url = contractsApi.downloadUrl(
-      projectId, contractId,
-      type as "contract" | "guarantee-letter" | "payment-schedule",
-      lang as "uz" | "uz_cyrillic" | "ru",
-    );
-    window.open(url, "_blank");
+  const handleDownload = async (type: string, lang = "uz") => {
+    const key = `${type}_${lang}`;
+    setDownloadingType(key);
     setDownloadOpen(false);
+    try {
+      const url = contractsApi.downloadUrl(
+        projectId, contractId,
+        type as "contract" | "guarantee-letter" | "payment-schedule",
+        lang as "uz" | "uz_cyrillic" | "ru",
+      );
+      const token = getToken();
+      const res = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        throw new Error(`Ошибка загрузки документа (${res.status})`);
+      }
+      const blob = await res.blob();
+      const contentType = res.headers.get("content-type") ?? "";
+      const ext = contentType.includes("pdf")
+        ? ".pdf"
+        : contentType.includes("word") || contentType.includes("openxmlformats")
+        ? ".docx"
+        : "";
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `${type}_${contractId}${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Ошибка скачивания документа");
+    } finally {
+      setDownloadingType(null);
+    }
   };
 
   if (loading) {
@@ -136,10 +168,15 @@ export default function ContractDetailPage() {
         <div className="relative">
           <button
             onClick={() => setDownloadOpen((v) => !v)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 text-sm font-bold hover:bg-slate-50 transition"
+            disabled={downloadingType != null}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 text-sm font-bold hover:bg-slate-50 transition disabled:opacity-60"
           >
-            <Download className="h-4 w-4" />
-            Скачать
+            {downloadingType != null ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            {downloadingType != null ? "Загрузка…" : "Скачать"}
             <ChevronDown className={`h-3 w-3 transition-transform ${downloadOpen ? "rotate-180" : ""}`} />
           </button>
           {downloadOpen && (
@@ -157,7 +194,7 @@ export default function ContractDetailPage() {
                 ) : (
                   <button
                     key={i}
-                    onClick={() => handleDownload(item.type, item.lang)}
+                    onClick={() => void handleDownload(item.type, item.lang)}
                     className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 text-slate-700 transition"
                   >
                     {item.label}
