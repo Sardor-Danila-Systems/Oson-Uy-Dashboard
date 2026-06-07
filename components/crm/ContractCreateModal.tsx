@@ -15,6 +15,7 @@ import Link from "next/link";
 import {
   contractsApi,
   customersApi,
+  downloadContractDocument,
   Contract,
   PaymentMethod,
 } from "@/lib/crm-api";
@@ -87,6 +88,8 @@ export default function ContractCreateModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<Contract | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const isInstallment = paymentMethod === "INSTALLMENT" || paymentMethod === "MORTGAGE";
 
@@ -155,9 +158,23 @@ export default function ContractCreateModal({
     }
   };
 
-  const download = (type: "contract" | "guarantee-letter" | "payment-schedule", lang: "uz" | "uz_cyrillic" | "ru" = "uz") => {
+  const download = async (
+    type: "contract" | "guarantee-letter" | "payment-schedule",
+    lang: "uz" | "uz_cyrillic" | "ru" = "uz",
+  ) => {
     if (!created) return;
-    window.open(contractsApi.downloadUrl(projectId, created.id, type, lang), "_blank");
+    const key = `${type}_${lang}`;
+    setDownloading(key);
+    setDownloadError(null);
+    try {
+      await downloadContractDocument(projectId, created.id, type, lang);
+    } catch (err) {
+      setDownloadError(
+        err instanceof Error ? err.message : "Ошибка скачивания документа",
+      );
+    } finally {
+      setDownloading(null);
+    }
   };
 
   const inputCls =
@@ -180,25 +197,48 @@ export default function ContractCreateModal({
 
           <div className="mt-6 space-y-2">
             <button
-              onClick={() => download("contract", "uz")}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#1E3A8A] py-3 text-sm font-black text-white hover:bg-blue-900 transition"
+              onClick={() => void download("contract", "uz")}
+              disabled={downloading != null}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#1E3A8A] py-3 text-sm font-black text-white hover:bg-blue-900 disabled:opacity-60 transition"
             >
-              <FileText className="h-4 w-4" /> Скачать договор (uz)
+              {downloading === "contract_uz" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="h-4 w-4" />
+              )}
+              Скачать договор (uz)
             </button>
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => download("contract", "ru")}
-                className="flex items-center justify-center gap-1.5 rounded-2xl border border-slate-200 py-2.5 text-xs font-black text-slate-600 hover:bg-slate-50 transition"
+                onClick={() => void download("contract", "ru")}
+                disabled={downloading != null}
+                className="flex items-center justify-center gap-1.5 rounded-2xl border border-slate-200 py-2.5 text-xs font-black text-slate-600 hover:bg-slate-50 disabled:opacity-60 transition"
               >
-                <Download className="h-3.5 w-3.5" /> Договор (ru)
+                {downloading === "contract_ru" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
+                Договор (ru)
               </button>
               <button
-                onClick={() => download("payment-schedule", "uz")}
-                className="flex items-center justify-center gap-1.5 rounded-2xl border border-slate-200 py-2.5 text-xs font-black text-slate-600 hover:bg-slate-50 transition"
+                onClick={() => void download("payment-schedule", "uz")}
+                disabled={downloading != null}
+                className="flex items-center justify-center gap-1.5 rounded-2xl border border-slate-200 py-2.5 text-xs font-black text-slate-600 hover:bg-slate-50 disabled:opacity-60 transition"
               >
-                <Download className="h-3.5 w-3.5" /> График
+                {downloading === "payment-schedule_uz" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
+                График
               </button>
             </div>
+            {downloadError && (
+              <p className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
+                {downloadError}
+              </p>
+            )}
           </div>
 
           <div className="mt-6 flex items-center gap-2">

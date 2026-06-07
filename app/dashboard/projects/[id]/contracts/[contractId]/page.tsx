@@ -13,8 +13,12 @@ import {
   Plus,
   Loader2,
 } from "lucide-react";
-import { contractsApi, Contract, PaymentMethod } from "@/lib/crm-api";
-import { getToken } from "@/lib/api";
+import {
+  contractsApi,
+  downloadContractDocument,
+  Contract,
+  PaymentMethod,
+} from "@/lib/crm-api";
 import { formatMoneyInput, parseMoneyInput } from "@/lib/currency";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -96,33 +100,12 @@ export default function ContractDetailPage() {
     setDownloadingType(key);
     setDownloadOpen(false);
     try {
-      const url = contractsApi.downloadUrl(
-        projectId, contractId,
+      await downloadContractDocument(
+        projectId,
+        contractId,
         type as "contract" | "guarantee-letter" | "payment-schedule",
         lang as "uz" | "uz_cyrillic" | "ru",
       );
-      const token = getToken();
-      const res = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) {
-        throw new Error(`Ошибка загрузки документа (${res.status})`);
-      }
-      const blob = await res.blob();
-      const contentType = res.headers.get("content-type") ?? "";
-      const ext = contentType.includes("pdf")
-        ? ".pdf"
-        : contentType.includes("word") || contentType.includes("openxmlformats")
-        ? ".docx"
-        : "";
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = `${type}_${contractId}${ext}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Ошибка скачивания документа");
     } finally {

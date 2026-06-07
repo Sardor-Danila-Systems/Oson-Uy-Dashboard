@@ -11,12 +11,14 @@ import {
   ChevronRight,
   FileText,
   Download,
+  FileCog,
 } from "lucide-react";
 import {
   contractsApi,
   ContractListItem,
   ContractStatus,
 } from "@/lib/crm-api";
+import ContractTemplatesModal from "@/components/crm/ContractTemplatesModal";
 import * as XLSX from "xlsx";
 
 const STATUS_LABEL: Record<ContractStatus, string> = {
@@ -49,6 +51,7 @@ export default function ContractsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ContractStatus | "">("");
   const [page, setPage] = useState(1);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const LIMIT = 20;
 
   const load = useCallback(async () => {
@@ -120,6 +123,12 @@ export default function ContractsPage() {
           <p className="text-sm text-slate-500 mt-0.5">{total} договоров</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setTemplatesOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition"
+          >
+            <FileCog className="h-4 w-4" /> Шаблоны
+          </button>
           <button
             onClick={exportXlsx}
             className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition"
@@ -258,6 +267,13 @@ export default function ContractsPage() {
             Вперёд →
           </button>
         </div>
+      )}
+
+      {templatesOpen && (
+        <ContractTemplatesModal
+          projectId={projectId}
+          onClose={() => setTemplatesOpen(false)}
+        />
       )}
     </div>
   );

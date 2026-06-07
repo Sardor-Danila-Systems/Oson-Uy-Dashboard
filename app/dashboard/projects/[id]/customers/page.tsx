@@ -325,30 +325,29 @@ export default function ProjectCustomersPage() {
         ? { comment: payComment.trim() }
         : {};
 
-      await apiFetch(
-        `/projects/${projectId}/customers/${payOpenId}/payments`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            amountUzs,
-            paidAt: paidAtIso,
-            ...commentBody,
-          }),
-        },
-      );
-
-      // Also sync to linked contract so payment appears in analytics
       if (payContractId) {
-        try {
-          await contractsApi.addPayment(projectId, payContractId, {
-            amountUzs,
-            paidAt: paidAtIso,
-            type: "INSTALLMENT",
-            ...commentBody,
-          });
-        } catch {
-          /* non-fatal — customer payment already saved */
-        }
+        // Linked to a contract → record once through the contract so it is
+        // counted in the contract balance, analytics AND the buyer cabinet
+        // (the payment is tied to the same customer). Avoids double-counting.
+        await contractsApi.addPayment(projectId, payContractId, {
+          amountUzs,
+          paidAt: paidAtIso,
+          type: "INSTALLMENT",
+          ...commentBody,
+        });
+      } else {
+        // No linked contract → standalone customer payment.
+        await apiFetch(
+          `/projects/${projectId}/customers/${payOpenId}/payments`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              amountUzs,
+              paidAt: paidAtIso,
+              ...commentBody,
+            }),
+          },
+        );
       }
 
       setPayAmount("");

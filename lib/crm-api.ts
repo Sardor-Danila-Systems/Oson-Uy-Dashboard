@@ -1,4 +1,4 @@
-import { apiFetch } from "./api";
+import { apiFetch, API_URL, getToken } from "./api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -204,6 +204,125 @@ export const contractsApi = {
       process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
     return `${base}/projects/${projectId}/contracts/${contractId}/documents/${type}?lang=${lang}`;
   },
+};
+
+// ── Document download (authenticated) ───────────────────────────────────────────
+
+export type DocType = "contract" | "guarantee-letter" | "payment-schedule";
+export type DocLang = "uz" | "uz_cyrillic" | "ru";
+
+/**
+ * Downloads a generated contract document with the auth header and triggers
+ * a browser download. Throws a readable error if the template is missing.
+ */
+export async function downloadContractDocument(
+  projectId: number,
+  contractId: number,
+  type: DocType,
+  lang: DocLang = "uz",
+  fileLabel?: string,
+): Promise<void> {
+  const url = contractsApi.downloadUrl(projectId, contractId, type, lang);
+  const token = getToken();
+  const res = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    let msg = `Ошибка загрузки документа (${res.status})`;
+    try {
+      const j = (await res.json()) as { message?: string };
+      if (j?.message) msg = j.message;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  const contentType = res.headers.get("content-type") ?? "";
+  const ext = contentType.includes("pdf")
+    ? ".pdf"
+    : contentType.includes("word") || contentType.includes("openxmlformats")
+      ? ".docx"
+      : ".docx";
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = `${fileLabel ?? type}_${contractId}${ext}`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+}
+
+// ── Contract document templates ─────────────────────────────────────────────────
+
+export type TemplateType = "CONTRACT" | "GUARANTEE_LETTER" | "PAYMENT_SCHEDULE";
+
+export interface ContractTemplate {
+  id: number;
+  projectId: number | null;
+  name: string;
+  type: TemplateType;
+  language: string;
+  templateUrl: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TemplateVariable {
+  key: string;
+  label: string;
+}
+
+export const templatesApi = {
+  list: (projectId: number) =>
+    apiFetch<ContractTemplate[]>(`/projects/${projectId}/contract-templates`),
+
+  variables: (projectId: number) =>
+    apiFetch<TemplateVariable[]>(
+      `/projects/${projectId}/contract-templates/variables`,
+    ),
+
+  upload: async (
+    projectId: number,
+    file: File,
+    meta: { name?: string; type: TemplateType; language: string; isDefault?: boolean },
+  ): Promise<ContractTemplate> => {
+    const form = new FormData();
+    form.append("file", file);
+    if (meta.name) form.append("name", meta.name);
+    form.append("type", meta.type);
+    form.append("language", meta.language);
+    form.append("isDefault", String(meta.isDefault ?? false));
+    const token = getToken();
+    const res = await fetch(
+      `${API_URL}/projects/${projectId}/contract-templates`,
+      {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      },
+    );
+    if (!res.ok) {
+      let msg = `Ошибка загрузки шаблона (${res.status})`;
+      try {
+        const j = (await res.json()) as { message?: string | string[] };
+        if (typeof j.message === "string") msg = j.message;
+        else if (Array.isArray(j.message)) msg = j.message.join(", ");
+      } catch {
+        /* ignore */
+      }
+      throw new Error(msg);
+    }
+    return (await res.json()) as ContractTemplate;
+  },
+
+  remove: (projectId: number, id: number) =>
+    apiFetch<{ ok: boolean }>(
+      `/projects/${projectId}/contract-templates/${id}`,
+      { method: "DELETE" },
+    ),
 };
 
 // ── Apartments ────────────────────────────────────────────────────────────────
