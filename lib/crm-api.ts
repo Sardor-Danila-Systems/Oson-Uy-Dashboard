@@ -98,6 +98,7 @@ export interface Contract {
   discountPercent: number;
   firstPaymentUzs: string;
   termMonths: number;
+  paymentDay: number | null;
   monthlyAmountUzs: string | null;
   contractDate: string;
   notes: string | null;

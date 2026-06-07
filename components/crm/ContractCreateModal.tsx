@@ -83,6 +83,7 @@ export default function ContractCreateModal({
   const [contractDate, setContractDate] = useState(
     new Date().toISOString().split("T")[0],
   );
+  const [paymentDay, setPaymentDay] = useState(String(new Date().getDate()));
   const [notes, setNotes] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -144,6 +145,9 @@ export default function ContractCreateModal({
         totalPriceUzs: total,
         firstPaymentUzs: parseMoney(firstPayment),
         termMonths: isInstallment ? Math.max(1, parseInt(termMonths || "1", 10)) : 1,
+        paymentDay: isInstallment
+          ? Math.min(31, Math.max(1, parseInt(paymentDay || "1", 10)))
+          : undefined,
         discountPercent: Number(discount) || 0,
         contractDate,
         notes: notes.trim() || undefined,
@@ -370,6 +374,21 @@ export default function ContractCreateModal({
                 <div>
                   <label className={labelCls}>Срок (месяцев)</label>
                   <input type="number" min={1} className={inputCls} value={termMonths} onChange={(e) => setTermMonths(e.target.value)} />
+                </div>
+                <div>
+                  <label className={labelCls}>День платежа (число месяца)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={31}
+                    className={inputCls}
+                    value={paymentDay}
+                    onChange={(e) => setPaymentDay(e.target.value)}
+                    placeholder="1"
+                  />
+                  <p className="mt-1 text-[10px] font-medium text-slate-400">
+                    Клиент платит каждое {paymentDay || "—"} число месяца
+                  </p>
                 </div>
               </>
             )}

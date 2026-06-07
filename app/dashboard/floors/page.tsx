@@ -88,6 +88,7 @@ const emptyForm = (projectId: number): FloorForm => ({
 
 export default function FloorsPage() {
   const t = useTranslations("Dashboard.floors");
+  const tc = useTranslations("Common");
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [floors, setFloors] = useState<ProjectFloor[]>([]);
   const [form, setForm] = useState<FloorForm>(emptyForm(0));
@@ -680,7 +681,9 @@ export default function FloorsPage() {
                       {fl.project?.name}
                     </h3>
                     <p className="mt-1 text-xs font-black uppercase tracking-tight text-blue-600">
-                      {formatUzs(Math.round(fl.pricePerM2))} / м²
+                      {fl.pricePerM2 > 0
+                        ? `${formatUzs(Math.round(fl.pricePerM2))} / м²`
+                        : tc("negotiablePrice")}
                     </p>
                     <p className="mt-1 text-xs text-slate-600">
                       {t("table.areas")}: {areasLabel(fl)}

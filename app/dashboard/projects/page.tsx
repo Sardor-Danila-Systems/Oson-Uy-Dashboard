@@ -112,6 +112,7 @@ const toEmbedMapUrl = (value: string) => {
 
 export default function ProjectsPage() {
   const t = useTranslations("Dashboard.projects");
+  const tc = useTranslations("Common");
   const locale = useLocale();
   const [projects, setProjects] = useState<Project[]>([]);
   const [form, setForm] = useState<ProjectForm>(defaultForm);
@@ -483,7 +484,7 @@ export default function ProjectsPage() {
                 <ProjectInfoItem icon={<Layers className="h-4 w-4" />} label={t("info.floors")} value={`${project.totalFloors} ${t("info.floorSuffix")}`} />
                 <ProjectInfoItem icon={<Home className="h-4 w-4" />} label={t("info.units")} value={`${project.totalUnits} ${t("info.unitSuffix")}`} />
                 <ProjectInfoItem icon={<Calendar className="h-4 w-4" />} label={t("info.delivery")} value={project.deliveryDate} />
-                <ProjectInfoItem icon={<DollarSign className="h-4 w-4" />} label={t("info.fromPerM2")} value={project.pricePerM2From ? `${formatUzs(Number(project.pricePerM2From))} / м²` : "—"} />
+                <ProjectInfoItem icon={<DollarSign className="h-4 w-4" />} label={t("info.fromPerM2")} value={Number(project.pricePerM2From) > 0 ? `${formatUzs(Number(project.pricePerM2From))} / м²` : tc("negotiablePrice")} />
               </div>
 
               <div className="pt-6 border-t border-slate-50 flex items-center justify-between">

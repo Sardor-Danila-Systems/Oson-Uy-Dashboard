@@ -59,6 +59,8 @@ export default function ContractDetailPage() {
   const [payDate, setPayDate] = useState(new Date().toISOString().split("T")[0]);
   const [payComment, setPayComment] = useState("");
   const [payLoading, setPayLoading] = useState(false);
+  const [payDayEdit, setPayDayEdit] = useState("");
+  const [savingDay, setSavingDay] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -93,6 +95,25 @@ export default function ContractDetailPage() {
   const handleDeletePayment = async (paymentId: number) => {
     if (!confirm("Удалить платёж?")) return;
     setContract(await contractsApi.removePayment(projectId, contractId, paymentId));
+  };
+
+  useEffect(() => {
+    setPayDayEdit(
+      contract?.paymentDay != null ? String(contract.paymentDay) : "",
+    );
+  }, [contract?.paymentDay]);
+
+  const handleSaveDay = async () => {
+    const day = Math.min(31, Math.max(1, parseInt(payDayEdit || "1", 10)));
+    setSavingDay(true);
+    try {
+      const updated = await contractsApi.update(projectId, contractId, {
+        paymentDay: day,
+      });
+      setContract(updated);
+    } finally {
+      setSavingDay(false);
+    }
   };
 
   const handleDownload = async (type: string, lang = "uz") => {
@@ -319,8 +340,8 @@ export default function ContractDetailPage() {
                     {item.isPaid
                       ? <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
                       : <Clock className="h-4 w-4 text-slate-300 shrink-0" />}
-                    <span className="text-slate-400 text-xs w-20 shrink-0">
-                      {new Date(item.dueDate).toLocaleDateString("ru-RU", { month: "short", year: "numeric" })}
+                    <span className="text-slate-400 text-xs w-24 shrink-0">
+                      {new Date(item.dueDate).toLocaleDateString("ru-RU", { day: "2-digit", month: "short", year: "numeric" })}
                     </span>
                     <span className={`flex-1 font-black ${item.isPaid ? "text-emerald-600" : "text-slate-900"}`}>
                       {fmt(item.amountUzs)} сум
@@ -388,6 +409,41 @@ export default function ContractDetailPage() {
               <InfoRow label="Дата создания" value={new Date(contract.contractDate).toLocaleDateString("ru-RU")} />
               <InfoRow label="Ответственный" value={contract.manager?.name ?? "—"} />
               {contract.broker && <InfoRow label="Посредник" value={contract.broker.name} />}
+            </div>
+
+            {/* Payment day editor */}
+            <div className="mt-4 rounded-2xl bg-slate-50 border border-slate-100 p-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
+                День ежемесячного платежа
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={payDayEdit}
+                  onChange={(e) => setPayDayEdit(e.target.value)}
+                  placeholder="1"
+                  className="w-20 h-9 px-3 text-sm font-bold text-slate-900 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1E3A8A]/20 focus:border-[#1E3A8A]"
+                />
+                <span className="text-xs text-slate-500 flex-1">
+                  число каждого месяца
+                </span>
+                <button
+                  onClick={handleSaveDay}
+                  disabled={
+                    savingDay ||
+                    !payDayEdit ||
+                    payDayEdit === String(contract.paymentDay ?? "")
+                  }
+                  className="px-3 py-2 rounded-xl bg-[#1E3A8A] text-white text-xs font-black disabled:opacity-40 hover:bg-blue-900 transition"
+                >
+                  {savingDay ? "…" : "Сохранить"}
+                </button>
+              </div>
+              <p className="mt-2 text-[11px] text-slate-400 leading-snug">
+                Изменение сдвинет даты всех <b>неоплаченных</b> платежей на это число.
+              </p>
             </div>
           </div>
         </div>

@@ -1,4 +1,7 @@
 {
+  "Common": {
+    "negotiablePrice": "Цена договорная"
+  },
   "Dashboard": {
     "nav": {
       "dashboard": "Обзор",

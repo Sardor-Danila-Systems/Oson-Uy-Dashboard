@@ -1,4 +1,7 @@
 {
+  "Common": {
+    "negotiablePrice": "Kelishilgan narx"
+  },
   "Dashboard": {
     "nav": {
       "dashboard": "Sharh",

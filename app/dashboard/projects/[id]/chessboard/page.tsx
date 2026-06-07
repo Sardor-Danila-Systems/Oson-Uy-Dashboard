@@ -175,6 +175,7 @@ export default function ChessboardPage() {
   const params = useParams();
   const projectId = Number(params.id);
   const t = useTranslations("Dashboard.chessboard");
+  const tc = useTranslations("Common");
 
   const [projectName, setProjectName] = useState<string>("");
   const [list, setList] = useState<Apartment[]>([]);
@@ -907,9 +908,9 @@ export default function ChessboardPage() {
                           >
                             {units.map((a) => {
                               const tipPrice =
-                                a.priceUzs != null
+                                a.priceUzs != null && a.priceUzs > 0
                                   ? formatMoneyInput(String(a.priceUzs)) + " сум"
-                                  : "—";
+                                  : tc("negotiablePrice");
                               return (
                                 <button
                                   key={a.id}
@@ -1248,7 +1249,7 @@ export default function ChessboardPage() {
                             Оформить договор
                           </button>
                         )}
-                        {selected.priceUzs != null ? (
+                        {selected.priceUzs != null && selected.priceUzs > 0 ? (
                           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
                             <p className="text-[10px] font-black uppercase tracking-widest text-emerald-800">
                               {t("priceHighlight")}
@@ -1262,7 +1263,16 @@ export default function ChessboardPage() {
                               </p>
                             ) : null}
                           </div>
-                        ) : null}
+                        ) : (
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                              {t("priceHighlight")}
+                            </p>
+                            <p className="text-lg font-black text-slate-700">
+                              {tc("negotiablePrice")}
+                            </p>
+                          </div>
+                        )}
                         <div>
                           <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
                             {t("infoTableTitle")}
@@ -1319,16 +1329,17 @@ export default function ChessboardPage() {
                                   {selected.areaSqm} м²
                                 </td>
                               </tr>
-                              {selected.priceUzs != null ? (
-                                <tr>
-                                  <td className="py-1.5 font-bold text-slate-500">
-                                    {t("infoPriceTotal")}
-                                  </td>
-                                  <td className="py-1.5 text-right font-black">
-                                    {formatUzs(selected.priceUzs)}
-                                  </td>
-                                </tr>
-                              ) : null}
+                              <tr>
+                                <td className="py-1.5 font-bold text-slate-500">
+                                  {t("infoPriceTotal")}
+                                </td>
+                                <td className="py-1.5 text-right font-black">
+                                  {selected.priceUzs != null &&
+                                  selected.priceUzs > 0
+                                    ? formatUzs(selected.priceUzs)
+                                    : tc("negotiablePrice")}
+                                </td>
+                              </tr>
                               {priceM2 != null && Number.isFinite(priceM2) ? (
                                 <tr>
                                   <td className="py-1.5 font-bold text-slate-500">
