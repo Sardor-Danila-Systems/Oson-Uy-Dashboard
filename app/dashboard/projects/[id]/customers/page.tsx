@@ -12,6 +12,8 @@ import {
   Pencil,
   X,
   CreditCard,
+  Search,
+  AlertTriangle,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
@@ -25,6 +27,16 @@ type ApartmentOpt = {
   number: string;
   floor: number;
   sectionKey?: string | null;
+};
+
+type CustomerFinance = {
+  contractId: number;
+  contractNumber: string;
+  status: string;
+  totalPriceUzs: number;
+  paidUzs: number;
+  remainingUzs: number;
+  debtUzs: number;
 };
 
 type CustomerRow = {
@@ -42,7 +54,10 @@ type CustomerRow = {
     floor: number;
     sectionKey?: string | null;
   } | null;
+  finance?: CustomerFinance | null;
 };
+
+type CustomerFilter = "all" | "debtors" | "installment" | "paid";
 
 type ListResponse = {
   items: CustomerRow[];
@@ -73,6 +88,8 @@ export default function ProjectCustomersPage() {
 
   const [projectName, setProjectName] = useState("");
   const [rows, setRows] = useState<CustomerRow[]>([]);
+  const [searchText, setSearchText] = useState("");
+  const [filterMode, setFilterMode] = useState<CustomerFilter>("all");
   const [apartments, setApartments] = useState<ApartmentOpt[]>([]);
   const [loading, setLoading] = useState(true);
   const [planLocked, setPlanLocked] = useState(false);
@@ -92,6 +109,34 @@ export default function ProjectCustomersPage() {
     () => rows.find((r) => r.id === editId) ?? null,
     [rows, editId],
   );
+
+  const debtorsCount = useMemo(
+    () => rows.filter((r) => (r.finance?.debtUzs ?? 0) > 0).length,
+    [rows],
+  );
+
+  const filteredRows = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    const digits = q.replace(/\D/g, "");
+    return rows.filter((r) => {
+      if (q) {
+        const matchName = r.name.toLowerCase().includes(q);
+        const matchPhone = digits
+          ? r.phone.replace(/\D/g, "").includes(digits)
+          : false;
+        const matchApt = r.apartment
+          ? String(r.apartment.number).toLowerCase().includes(q)
+          : false;
+        if (!matchName && !matchPhone && !matchApt) return false;
+      }
+      const f = r.finance;
+      if (filterMode === "debtors") return !!f && f.debtUzs > 0;
+      if (filterMode === "paid") return !!f && f.remainingUzs <= 0;
+      if (filterMode === "installment")
+        return !!f && f.remainingUzs > 0 && f.status !== "COMPLETED";
+      return true;
+    });
+  }, [rows, searchText, filterMode]);
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editAptId, setEditAptId] = useState<string>("");
@@ -547,6 +592,47 @@ export default function ProjectCustomersPage() {
         <div className="border-b border-slate-100 px-6 py-4">
           <h2 className="text-lg font-black text-slate-900">{t("listTitle")}</h2>
           <p className="text-xs font-medium text-slate-500">{t("listHint")}</p>
+
+          {/* Search + filters */}
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Поиск по имени, телефону, квартире…"
+                className="h-10 w-full rounded-xl border border-slate-200 pl-9 pr-3 text-sm font-medium text-slate-900 outline-none focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/15"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  { key: "all", label: "Все" },
+                  { key: "debtors", label: `Должники${debtorsCount ? ` (${debtorsCount})` : ""}` },
+                  { key: "installment", label: "В рассрочке" },
+                  { key: "paid", label: "Оплачено" },
+                ] as { key: CustomerFilter; label: string }[]
+              ).map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setFilterMode(f.key)}
+                  className={`inline-flex items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-black uppercase tracking-widest transition ${
+                    filterMode === f.key
+                      ? f.key === "debtors"
+                        ? "bg-red-500 text-white"
+                        : "bg-[#1E3A8A] text-white"
+                      : "border border-slate-200 text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {f.key === "debtors" ? (
+                    <AlertTriangle className="h-3 w-3" />
+                  ) : null}
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -555,13 +641,14 @@ export default function ProjectCustomersPage() {
                 <th className="px-4 py-4">{t("name")}</th>
                 <th className="px-4 py-4">{t("phone")}</th>
                 <th className="px-4 py-4">{t("apartmentShort")}</th>
+                <th className="px-4 py-4">Финансы</th>
                 <th className="px-4 py-4">{t("accessCode")}</th>
                 <th className="px-4 py-4">{t("monthlyDueShort")}</th>
                 <th className="px-4 py-4 text-right">{t("actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {rows.map((r) => (
+              {filteredRows.map((r) => (
                 <tr key={r.id} className="hover:bg-slate-50/60">
                   <td className="px-4 py-3 font-bold text-slate-900">{r.name}</td>
                   <td className="px-4 py-3 text-slate-600">
@@ -571,6 +658,31 @@ export default function ProjectCustomersPage() {
                     {r.apartment
                       ? `${(r.apartment.sectionKey ?? "").trim() ? `${r.apartment.sectionKey} · ` : ""}№${r.apartment.number}`
                       : "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {r.finance ? (
+                      <div className="space-y-0.5">
+                        {r.finance.debtUzs > 0 ? (
+                          <span className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2 py-0.5 text-[11px] font-black text-red-600">
+                            <AlertTriangle className="h-3 w-3" />
+                            Долг {formatUzs(r.finance.debtUzs)}
+                          </span>
+                        ) : r.finance.remainingUzs <= 0 ? (
+                          <span className="inline-flex rounded-lg bg-emerald-50 px-2 py-0.5 text-[11px] font-black text-emerald-700">
+                            Оплачено
+                          </span>
+                        ) : (
+                          <span className="inline-flex rounded-lg bg-amber-50 px-2 py-0.5 text-[11px] font-black text-amber-700">
+                            Остаток {formatUzs(r.finance.remainingUzs)}
+                          </span>
+                        )}
+                        <p className="text-[10px] text-slate-400">
+                          №{r.finance.contractNumber}
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-300">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap items-center gap-2">
@@ -618,13 +730,13 @@ export default function ProjectCustomersPage() {
                   </td>
                 </tr>
               ))}
-              {rows.length === 0 && (
+              {filteredRows.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-6 py-16 text-center text-slate-400 font-medium"
                   >
-                    {t("empty")}
+                    {rows.length === 0 ? t("empty") : "Ничего не найдено"}
                   </td>
                 </tr>
               )}

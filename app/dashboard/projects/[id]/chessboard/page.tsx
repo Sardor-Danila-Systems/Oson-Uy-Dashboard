@@ -39,6 +39,7 @@ type Apartment = {
   rooms: number;
   areaSqm: number;
   priceUzs: number | null;
+  pricePerM2Uzs?: number | null;
   status: AptStatus;
   layoutImageUrl?: string | null;
   model3dUrl?: string | null;
@@ -77,7 +78,7 @@ type BulkSectionForm = {
   unitsPerFloor: string;
   rooms: string;
   areaSqm: string;
-  priceUzs: string;
+  pricePerM2: string;
   layoutVariantId: string;
 };
 
@@ -88,14 +89,14 @@ const bulkLabelClass = "text-[10px] font-black uppercase tracking-widest text-sl
 
 function defaultBulkSection(): BulkSectionForm {
   return {
-    sectionKey: "",
+    sectionKey: "1",
     sectionLabel: "",
     floorFrom: "1",
     floorTo: "9",
     unitsPerFloor: "4",
     rooms: "2",
     areaSqm: "55",
-    priceUzs: "",
+    pricePerM2: "",
     layoutVariantId: "",
   };
 }
@@ -119,7 +120,6 @@ function countBulkUnits(sections: BulkSectionForm[]): number {
 function previewNumbers(sections: BulkSectionForm[], max = 8): string[] {
   const out: string[] = [];
   for (const sec of sections) {
-    const sk = sec.sectionKey.trim();
     const a = parseInt(sec.floorFrom.trim(), 10);
     const b = parseInt(sec.floorTo.trim(), 10);
     const uf = parseInt(sec.unitsPerFloor.trim(), 10);
@@ -127,12 +127,12 @@ function previewNumbers(sections: BulkSectionForm[], max = 8): string[] {
       continue;
     const lo = Math.min(a, b);
     const hi = Math.max(a, b);
+    // Plain sequential numbers within the block (1, 2, 3 …)
+    let counter = 0;
     for (let f = lo; f <= hi && out.length < max; f++) {
       for (let u = 1; u <= uf && out.length < max; u++) {
-        const num = sk
-          ? `${sk}-${f}-${String(u).padStart(2, "0")}`
-          : `${f}-${String(u).padStart(2, "0")}`;
-        out.push(num);
+        counter += 1;
+        out.push(String(counter));
       }
     }
   }
@@ -208,6 +208,7 @@ export default function ChessboardPage() {
   const [editRooms, setEditRooms] = useState("");
   const [editArea, setEditArea] = useState("");
   const [editPrice, setEditPrice] = useState("");
+  const [editPricePerM2, setEditPricePerM2] = useState("");
   const [editLayoutUrl, setEditLayoutUrl] = useState("");
   const [editModelUrl, setEditModelUrl] = useState("");
   const [unitSaving, setUnitSaving] = useState(false);
@@ -422,6 +423,11 @@ export default function ChessboardPage() {
         ? formatMoneyInput(String(selected.priceUzs))
         : "",
     );
+    setEditPricePerM2(
+      selected.pricePerM2Uzs != null && selected.pricePerM2Uzs > 0
+        ? formatMoneyInput(String(selected.pricePerM2Uzs))
+        : "",
+    );
     setEditLayoutUrl(selected.layoutImageUrl ?? "");
     setEditModelUrl(selected.model3dUrl ?? "");
   }, [selected]);
@@ -478,7 +484,11 @@ export default function ChessboardPage() {
             floor: Number(editFloor),
             rooms: Number(editRooms),
             areaSqm: Number(editArea.replace(",", ".")),
-            priceUzs: editPrice.trim() ? parseMoneyInput(editPrice) : null,
+            // Prefer price-per-m² (backend computes the total); fall back to
+            // a manually entered total price.
+            ...(editPricePerM2.trim()
+              ? { pricePerM2Uzs: parseMoneyInput(editPricePerM2) }
+              : { priceUzs: editPrice.trim() ? parseMoneyInput(editPrice) : null }),
             layoutImageUrl: editLayoutUrl.trim() || null,
             model3dUrl: editModelUrl.trim() || null,
           }),
@@ -569,8 +579,8 @@ export default function ChessboardPage() {
           unitsPerFloor: n.unitsPerFloor,
           rooms: n.rooms,
           areaSqm: n.areaSqm,
-          ...(s.priceUzs.trim()
-            ? { priceUzs: Number(s.priceUzs.replace(/\s/g, "")) }
+          ...(s.pricePerM2.trim()
+            ? { pricePerM2Uzs: Number(s.pricePerM2.replace(/\s/g, "")) }
             : {}),
           ...(s.layoutVariantId.trim()
             ? { layoutVariantId: Number(s.layoutVariantId) }
@@ -1094,19 +1104,31 @@ export default function ChessboardPage() {
                       />
                     </label>
                     <label className="space-y-1">
-                      <span className={bulkLabelClass}>
-                        {t("bulk.priceUzs")}
-                      </span>
+                      <span className={bulkLabelClass}>Цена за м² (сум)</span>
                       <input
-                        value={row.priceUzs}
+                        value={row.pricePerM2}
                         onChange={(e) =>
                           updateBulkRow(idx, {
-                            priceUzs: formatMoneyInput(e.target.value),
+                            pricePerM2: formatMoneyInput(e.target.value),
                           })
                         }
-                        placeholder="—"
+                        placeholder="9 500 000"
                         className={bulkInputClass}
                       />
+                      {(() => {
+                        const per = parseMoneyInput(row.pricePerM2);
+                        const area = parseFloat(
+                          row.areaSqm.trim().replace(",", "."),
+                        );
+                        if (per > 0 && Number.isFinite(area) && area > 0) {
+                          return (
+                            <span className="mt-1 block text-[10px] font-bold text-emerald-700">
+                              Полная цена: {formatUzs(Math.round(per * area))}
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
                     </label>
                     <label className="space-y-1">
                       <span className={bulkLabelClass}>
@@ -1476,12 +1498,41 @@ export default function ChessboardPage() {
                       </label>
                       <label className="block space-y-1">
                         <span className="text-[10px] font-black uppercase text-slate-400">
-                          {t("bulk.priceUzs")}
+                          Цена за м² (сум)
+                        </span>
+                        <input
+                          className={bulkInputClass}
+                          inputMode="numeric"
+                          value={editPricePerM2}
+                          placeholder="9 500 000"
+                          onChange={(e) =>
+                            setEditPricePerM2(formatMoneyInput(e.target.value))
+                          }
+                        />
+                        {(() => {
+                          const per = parseMoneyInput(editPricePerM2);
+                          const area = parseFloat(
+                            editArea.trim().replace(",", "."),
+                          );
+                          if (per > 0 && Number.isFinite(area) && area > 0) {
+                            return (
+                              <span className="mt-1 block text-[10px] font-bold text-emerald-700">
+                                Полная цена: {formatUzs(Math.round(per * area))}
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </label>
+                      <label className="block space-y-1">
+                        <span className="text-[10px] font-black uppercase text-slate-400">
+                          Полная цена (если без цены за м²)
                         </span>
                         <input
                           className={bulkInputClass}
                           inputMode="numeric"
                           value={editPrice}
+                          disabled={!!editPricePerM2.trim()}
                           onChange={(e) =>
                             setEditPrice(formatMoneyInput(e.target.value))
                           }

@@ -22,8 +22,10 @@ import {
 import { formatMoneyInput, parseMoneyInput } from "@/lib/currency";
 
 const STATUS_LABEL: Record<string, string> = {
-  ACTIVE: "Активный", BOOKED: "Забронирован",
-  COMPLETED: "Завершён", CANCELED: "Отменён",
+  ACTIVE: "Активный",
+  BOOKED: "Забронирован",
+  COMPLETED: "Завершён",
+  CANCELED: "Отменён",
 };
 const STATUS_STYLE: Record<string, string> = {
   ACTIVE: "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -32,8 +34,10 @@ const STATUS_STYLE: Record<string, string> = {
   CANCELED: "bg-red-100 text-red-700 border-red-200",
 };
 const METHOD_LABEL: Record<PaymentMethod, string> = {
-  CASH: "Наличные", INSTALLMENT: "Рассрочка",
-  MORTGAGE: "Ипотека", FULL: "Полная оплата",
+  CASH: "Наличные",
+  INSTALLMENT: "Рассрочка",
+  MORTGAGE: "Ипотека",
+  FULL: "Полная оплата",
 };
 
 function fmt(v: string | number | null | undefined) {
@@ -56,7 +60,9 @@ export default function ContractDetailPage() {
   const [downloadOpen, setDownloadOpen] = useState(false);
   const [downloadingType, setDownloadingType] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState("");
-  const [payDate, setPayDate] = useState(new Date().toISOString().split("T")[0]);
+  const [payDate, setPayDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
   const [payComment, setPayComment] = useState("");
   const [payLoading, setPayLoading] = useState(false);
   const [payDayEdit, setPayDayEdit] = useState("");
@@ -71,7 +77,9 @@ export default function ContractDetailPage() {
     }
   };
 
-  useEffect(() => { load(); }, [projectId, contractId]);
+  useEffect(() => {
+    load();
+  }, [projectId, contractId]);
 
   const handleAddPayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,7 +102,9 @@ export default function ContractDetailPage() {
 
   const handleDeletePayment = async (paymentId: number) => {
     if (!confirm("Удалить платёж?")) return;
-    setContract(await contractsApi.removePayment(projectId, contractId, paymentId));
+    setContract(
+      await contractsApi.removePayment(projectId, contractId, paymentId),
+    );
   };
 
   useEffect(() => {
@@ -156,14 +166,20 @@ export default function ContractDetailPage() {
           <ArrowLeft className="h-4 w-4" /> Договоры
         </Link>
         <span className="text-slate-300">/</span>
-        <span className="text-sm font-black text-[#1E3A8A]">№{contract.number}</span>
+        <span className="text-sm font-black text-[#1E3A8A]">
+          №{contract.number}
+        </span>
       </div>
 
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-black text-slate-900">№{contract.number}</h1>
-          <span className={`px-3 py-1 rounded-full text-xs font-black uppercase border ${STATUS_STYLE[contract.status]}`}>
+          <h1 className="text-2xl font-black text-slate-900">
+            №{contract.number}
+          </h1>
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-black uppercase border ${STATUS_STYLE[contract.status]}`}
+          >
             {STATUS_LABEL[contract.status]}
           </span>
         </div>
@@ -181,17 +197,31 @@ export default function ContractDetailPage() {
               <Download className="h-4 w-4" />
             )}
             {downloadingType != null ? "Загрузка…" : "Скачать"}
-            <ChevronDown className={`h-3 w-3 transition-transform ${downloadOpen ? "rotate-180" : ""}`} />
+            <ChevronDown
+              className={`h-3 w-3 transition-transform ${downloadOpen ? "rotate-180" : ""}`}
+            />
           </button>
           {downloadOpen && (
             <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-2xl border border-slate-100 shadow-xl z-20 py-2">
               {[
                 { label: "Договор (uz)", type: "contract", lang: "uz" },
-                { label: "Договор (uz-кириллица)", type: "contract", lang: "uz_cyrillic" },
+                {
+                  label: "Договор (uz-кириллица)",
+                  type: "contract",
+                  lang: "uz_cyrillic",
+                },
                 { label: "Договор (ru)", type: "contract", lang: "ru" },
                 null,
-                { label: "Гарантийное письмо", type: "guarantee-letter", lang: "uz" },
-                { label: "График платежей", type: "payment-schedule", lang: "uz" },
+                {
+                  label: "Гарантийное письмо",
+                  type: "guarantee-letter",
+                  lang: "uz",
+                },
+                {
+                  label: "График платежей",
+                  type: "payment-schedule",
+                  lang: "uz",
+                },
               ].map((item, i) =>
                 item === null ? (
                   <div key={i} className="my-1 border-t border-slate-100" />
@@ -213,16 +243,44 @@ export default function ContractDetailPage() {
       {/* Financial cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
-          { label: "Сумма договора",  value: `${fmt(contract.totalPriceUzs)} сум`, style: "border-[#1E3A8A]/20 bg-blue-50" },
-          { label: "Первый взнос",    value: `${fmt(contract.firstPaymentUzs)} сум`, style: "" },
-          { label: "Срок",            value: `${contract.termMonths} мес.`, style: "" },
-          { label: "Оплачено",        value: `${fmt(contract.paidUzs)} сум`, style: "border-emerald-200 bg-emerald-50" },
-          { label: "Остаток",         value: `${fmt(contract.remainingUzs)} сум`, style: "border-orange-200 bg-orange-50" },
-          { label: "Долг тек. мес.",  value: `${fmt(contract.debtUzs)} сум`, style: Number(contract.debtUzs) > 0 ? "border-red-200 bg-red-50" : "" },
+          {
+            label: "Сумма договора",
+            value: `${fmt(contract.totalPriceUzs)} сум`,
+            style: "border-[#1E3A8A]/20 bg-blue-50",
+          },
+          {
+            label: "Первый взнос",
+            value: `${fmt(contract.firstPaymentUzs)} сум`,
+            style: "",
+          },
+          { label: "Срок", value: `${contract.termMonths} мес.`, style: "" },
+          {
+            label: "Оплачено",
+            value: `${fmt(contract.paidUzs)} сум`,
+            style: "border-emerald-200 bg-emerald-50",
+          },
+          {
+            label: "Остаток",
+            value: `${fmt(contract.remainingUzs)} сум`,
+            style: "border-orange-200 bg-orange-50",
+          },
+          {
+            label: "Долг тек. мес.",
+            value: `${fmt(contract.debtUzs)} сум`,
+            style:
+              Number(contract.debtUzs) > 0 ? "border-red-200 bg-red-50" : "",
+          },
         ].map((c) => (
-          <div key={c.label} className={`rounded-2xl border px-3 py-3 bg-white ${c.style || "border-slate-100"}`}>
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">{c.label}</p>
-            <p className="text-xs font-black text-slate-900 leading-tight">{c.value}</p>
+          <div
+            key={c.label}
+            className={`rounded-2xl border px-3 py-3 bg-white ${c.style || "border-slate-100"}`}
+          >
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">
+              {c.label}
+            </p>
+            <p className="text-xs font-black text-slate-900 leading-tight">
+              {c.value}
+            </p>
           </div>
         ))}
       </div>
@@ -230,7 +288,9 @@ export default function ContractDetailPage() {
       {/* Progress */}
       <div className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-bold text-slate-600">Прогресс оплаты</span>
+          <span className="text-sm font-bold text-slate-600">
+            Прогресс оплаты
+          </span>
           <span className="text-sm font-black text-slate-900">{progress}%</span>
         </div>
         <div className="h-3 rounded-full bg-slate-100 overflow-hidden">
@@ -241,7 +301,12 @@ export default function ContractDetailPage() {
         </div>
         <div className="flex justify-between mt-2 text-xs text-slate-400 font-bold">
           <span>{METHOD_LABEL[contract.paymentMethod]}</span>
-          <span>Скидка: {contract.discountPercent > 0 ? `${contract.discountPercent}%` : "—"}</span>
+          <span>
+            Скидка:{" "}
+            {contract.discountPercent > 0
+              ? `${contract.discountPercent}%`
+              : "—"}
+          </span>
         </div>
       </div>
 
@@ -269,12 +334,19 @@ export default function ContractDetailPage() {
             {activeTab === "history" && (
               <>
                 {contract.status === "ACTIVE" && (
-                  <form onSubmit={handleAddPayment} className="rounded-2xl bg-slate-50 border border-slate-100 p-4 space-y-2.5">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Внести платёж</p>
+                  <form
+                    onSubmit={handleAddPayment}
+                    className="rounded-2xl bg-slate-50 border border-slate-100 p-4 space-y-2.5"
+                  >
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      Внести платёж
+                    </p>
                     <div className="flex gap-2">
                       <input
                         value={payAmount}
-                        onChange={(e) => setPayAmount(formatMoneyInput(e.target.value))}
+                        onChange={(e) =>
+                          setPayAmount(formatMoneyInput(e.target.value))
+                        }
                         placeholder="0"
                         inputMode="numeric"
                         required
@@ -304,13 +376,22 @@ export default function ContractDetailPage() {
                 )}
 
                 {contract.payments.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-6">Платежей нет</p>
+                  <p className="text-sm text-slate-400 text-center py-6">
+                    Платежей нет
+                  </p>
                 ) : (
                   contract.payments.map((p, i) => (
-                    <div key={p.id} className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50">
-                      <span className="text-xs text-slate-400 w-5 text-center">{i + 1}</span>
+                    <div
+                      key={p.id}
+                      className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50"
+                    >
+                      <span className="text-xs text-slate-400 w-5 text-center">
+                        {i + 1}
+                      </span>
                       <div className="flex-1 min-w-0">
-                        <p className="font-black text-slate-900 text-sm">{fmt(p.amountUzs)} сум</p>
+                        <p className="font-black text-slate-900 text-sm">
+                          {fmt(p.amountUzs)} сум
+                        </p>
                         <p className="text-xs text-slate-400">
                           {new Date(p.paidAt).toLocaleDateString("ru-RU")}
                           {p.comment ? ` · ${p.comment}` : ""}
@@ -331,28 +412,42 @@ export default function ContractDetailPage() {
               </>
             )}
 
-            {activeTab === "schedule" && (
-              contract.paymentSchedule.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-6">График не сформирован</p>
+            {activeTab === "schedule" &&
+              (contract.paymentSchedule.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-6">
+                  График не сформирован
+                </p>
               ) : (
                 contract.paymentSchedule.map((item) => (
-                  <div key={item.id} className={`flex items-center gap-3 p-3 rounded-2xl text-sm ${item.isPaid ? "bg-emerald-50" : "bg-slate-50"}`}>
-                    {item.isPaid
-                      ? <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                      : <Clock className="h-4 w-4 text-slate-300 shrink-0" />}
+                  <div
+                    key={item.id}
+                    className={`flex items-center gap-3 p-3 rounded-2xl text-sm ${item.isPaid ? "bg-emerald-50" : "bg-slate-50"}`}
+                  >
+                    {item.isPaid ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                    ) : (
+                      <Clock className="h-4 w-4 text-slate-300 shrink-0" />
+                    )}
                     <span className="text-slate-400 text-xs w-24 shrink-0">
-                      {new Date(item.dueDate).toLocaleDateString("ru-RU", { day: "2-digit", month: "short", year: "numeric" })}
+                      {new Date(item.dueDate).toLocaleDateString("ru-RU", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
                     </span>
-                    <span className={`flex-1 font-black ${item.isPaid ? "text-emerald-600" : "text-slate-900"}`}>
+                    <span
+                      className={`flex-1 font-black ${item.isPaid ? "text-emerald-600" : "text-slate-900"}`}
+                    >
                       {fmt(item.amountUzs)} сум
                     </span>
                     {item.isPaid && item.paidAt && (
-                      <span className="text-xs text-slate-400">{new Date(item.paidAt).toLocaleDateString("ru-RU")}</span>
+                      <span className="text-xs text-slate-400">
+                        {new Date(item.paidAt).toLocaleDateString("ru-RU")}
+                      </span>
                     )}
                   </div>
                 ))
-              )
-            )}
+              ))}
           </div>
         </div>
 
@@ -360,55 +455,103 @@ export default function ContractDetailPage() {
         <div className="space-y-4">
           {/* Client */}
           <div className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Информация о клиенте</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">
+              Информация о клиенте
+            </p>
             <div className="flex items-center gap-3 mb-4">
               <div className="h-11 w-11 rounded-full bg-[#1E3A8A]/10 flex items-center justify-center font-black text-[#1E3A8A]">
                 {contract.customer.name.charAt(0)}
               </div>
               <div>
-                <p className="font-black text-slate-900">{contract.customer.name}</p>
-                <p className="text-sm text-slate-500">{contract.customer.phone}</p>
+                <p className="font-black text-slate-900">
+                  {contract.customer.name}
+                </p>
+                <p className="text-sm text-slate-500">
+                  {contract.customer.phone}
+                </p>
               </div>
             </div>
             <div className="space-y-2 text-sm">
               {contract.customer.passportSeries && (
-                <InfoRow label="Паспорт" value={`${contract.customer.passportSeries} ${contract.customer.passportNumber ?? ""}`} />
+                <InfoRow
+                  label="Паспорт"
+                  value={`${contract.customer.passportSeries} ${contract.customer.passportNumber ?? ""}`}
+                />
               )}
-              {contract.customer.pinfl && <InfoRow label="ПИНФЛ" value={contract.customer.pinfl} />}
-              {contract.customer.address && <InfoRow label="Адрес" value={contract.customer.address} />}
+              {contract.customer.pinfl && (
+                <InfoRow label="ПИНФЛ" value={contract.customer.pinfl} />
+              )}
+              {contract.customer.address && (
+                <InfoRow label="Адрес" value={contract.customer.address} />
+              )}
               {contract.customer.region && (
-                <InfoRow label="Регион" value={`${contract.customer.region}${contract.customer.city ? ", " + contract.customer.city : ""}`} />
+                <InfoRow
+                  label="Регион"
+                  value={`${contract.customer.region}${contract.customer.city ? ", " + contract.customer.city : ""}`}
+                />
               )}
             </div>
           </div>
 
           {/* Apartment */}
           <div className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Информация о квартире</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">
+              Информация о квартире
+            </p>
             {contract.apartment.layoutImageUrl && (
-              <img src={contract.apartment.layoutImageUrl} alt="Планировка"
-                className="w-full max-h-36 object-contain rounded-2xl bg-slate-50 border border-slate-100 mb-4" />
+              <img
+                src={contract.apartment.layoutImageUrl}
+                alt="Планировка"
+                className="w-full max-h-36 object-contain rounded-2xl bg-slate-50 border border-slate-100 mb-4"
+              />
             )}
             <div className="space-y-2 text-sm">
-              <InfoRow label="Здание"   value={contract.apartment.project.name} />
-              <InfoRow label="Блок"     value={contract.apartment.sectionKey || "—"} />
-              <InfoRow label="Этаж"     value={String(contract.apartment.floor)} />
-              <InfoRow label="Квартира" value={`№${contract.apartment.number}`} />
-              <InfoRow label="Комнат"   value={String(contract.apartment.rooms)} />
-              <InfoRow label="Площадь"  value={`${contract.apartment.areaSqm} м²`} />
+              <InfoRow label="Здание" value={contract.apartment.project.name} />
+              <InfoRow
+                label="Блок"
+                value={contract.apartment.sectionKey || "—"}
+              />
+              <InfoRow label="Этаж" value={String(contract.apartment.floor)} />
+              <InfoRow
+                label="Квартира"
+                value={`№${contract.apartment.number}`}
+              />
+              <InfoRow
+                label="Комнат"
+                value={String(contract.apartment.rooms)}
+              />
+              <InfoRow
+                label="Площадь"
+                value={`${contract.apartment.areaSqm} м²`}
+              />
               {contract.apartment.pricePerM2Uzs && (
-                <InfoRow label="Цена 1 м²" value={`${fmt(contract.apartment.pricePerM2Uzs)} сум`} />
+                <InfoRow
+                  label="Цена 1 м²"
+                  value={`${fmt(contract.apartment.pricePerM2Uzs)} сум`}
+                />
               )}
             </div>
           </div>
 
           {/* Contract meta */}
           <div className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Данные договора</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
+              Данные договора
+            </p>
             <div className="space-y-2 text-sm">
-              <InfoRow label="Дата создания" value={new Date(contract.contractDate).toLocaleDateString("ru-RU")} />
-              <InfoRow label="Ответственный" value={contract.manager?.name ?? "—"} />
-              {contract.broker && <InfoRow label="Посредник" value={contract.broker.name} />}
+              <InfoRow
+                label="Дата создания"
+                value={new Date(contract.contractDate).toLocaleDateString(
+                  "ru-RU",
+                )}
+              />
+              <InfoRow
+                label="Ответственный"
+                value={contract.manager?.name ?? "—"}
+              />
+              {contract.broker && (
+                <InfoRow label="Посредник" value={contract.broker.name} />
+              )}
             </div>
 
             {/* Payment day editor */}
@@ -442,7 +585,8 @@ export default function ContractDetailPage() {
                 </button>
               </div>
               <p className="mt-2 text-[11px] text-slate-400 leading-snug">
-                Изменение сдвинет даты всех <b>неоплаченных</b> платежей на это число.
+                Изменение сдвинет даты всех <b>неоплаченных</b> платежей на это
+                число.
               </p>
             </div>
           </div>
