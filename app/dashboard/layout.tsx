@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
-import { API_URL, ApiAuthError, apiFetch, clearSession } from "@/lib/api";
+import {
+   ApiAuthError, apiFetch, clearSession } from "@/lib/api";
 import { 
   LayoutDashboard, 
   Users, 
