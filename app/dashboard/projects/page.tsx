@@ -24,6 +24,7 @@ import {
   AlertCircle,
   QrCode,
   Trash2,
+  Box,
   ChevronRight,
   Edit2,
   Loader2,
@@ -467,6 +468,14 @@ export default function ProjectsPage() {
                       </>
                     );
                   })()}
+                  <Link
+                    href={`/dashboard/projects/${project.id}/scene3d`}
+                    className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all"
+                    title="3D-модель"
+                    aria-label="3D-модель"
+                  >
+                    <Box className="h-4 w-4" />
+                  </Link>
                   <Link
                     href={`/dashboard/progress?projectId=${project.id}`}
                     className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all"

@@ -326,6 +326,125 @@ export const templatesApi = {
     ),
 };
 
+// ── 3D scenes (Osonly 3D) ───────────────────────────────────────────────────────
+
+export type Asset3DStatus = "UPLOADED" | "PROCESSING" | "READY" | "FAILED";
+export type Asset3DKind = "EXTERIOR" | "INTERIOR" | "SITE" | "TILESET";
+
+export interface Scene3DAsset {
+  id: number;
+  kind: Asset3DKind;
+  format: string;
+  status: Asset3DStatus;
+  rawUrl: string;
+  optimizedUrl: string | null;
+  manifestUrl: string | null;
+  sizeBytes: number | null;
+  triangles: number | null;
+  lodLevels: number;
+  error: string | null;
+  buildingId: number | null;
+  createdAt: string;
+}
+
+export interface Scene3DInfo {
+  scene: {
+    id: number;
+    status: "DRAFT" | "PROCESSING" | "READY" | "FAILED";
+    version: number;
+    publishedAssetId: number | null;
+    manifestUrl: string | null;
+  } | null;
+  assets: Scene3DAsset[];
+  mappedCount: number;
+  totalApartments: number;
+}
+
+export interface Scene3DMappingApt {
+  id: number;
+  number: string;
+  sectionKey: string;
+  floor: number;
+  rooms: number;
+  status: string;
+  meshNode: string | null;
+  meshMapped: boolean;
+}
+
+export interface Scene3DMapping {
+  nodes: { node: string; kind: string; ref?: string }[];
+  unmappedNodes: { node: string; kind: string; ref?: string }[];
+  apartments: Scene3DMappingApt[];
+}
+
+export const scenes3dApi = {
+  info: (projectId: number) =>
+    apiFetch<Scene3DInfo>(`/projects/${projectId}/scene/assets`),
+
+  upload: async (
+    projectId: number,
+    file: File,
+    meta: { kind?: Asset3DKind; buildingKey?: string; format?: string },
+  ): Promise<Scene3DAsset> => {
+    const form = new FormData();
+    form.append("file", file);
+    if (meta.kind) form.append("kind", meta.kind);
+    if (meta.buildingKey) form.append("buildingKey", meta.buildingKey);
+    if (meta.format) form.append("format", meta.format);
+    const token = getToken();
+    const res = await fetch(`${API_URL}/projects/${projectId}/scene/assets`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+    if (!res.ok) {
+      let msg = `Ошибка загрузки модели (${res.status})`;
+      try {
+        const j = (await res.json()) as { message?: string | string[] };
+        if (typeof j.message === "string") msg = j.message;
+        else if (Array.isArray(j.message)) msg = j.message.join(", ");
+      } catch {
+        /* ignore */
+      }
+      throw new Error(msg);
+    }
+    return (await res.json()) as Scene3DAsset;
+  },
+
+  process: (projectId: number, assetId: number) =>
+    apiFetch<{ ok: boolean; status: string }>(
+      `/projects/${projectId}/scene/assets/${assetId}/process`,
+      { method: "POST", body: "{}" },
+    ),
+
+  removeAsset: (projectId: number, assetId: number) =>
+    apiFetch<{ ok: boolean }>(
+      `/projects/${projectId}/scene/assets/${assetId}`,
+      { method: "DELETE" },
+    ),
+
+  mapping: (projectId: number) =>
+    apiFetch<Scene3DMapping>(`/projects/${projectId}/scene/mapping`),
+
+  map: (projectId: number, apartmentId: number, meshNode: string | null) =>
+    apiFetch<{ id: number; meshNode: string | null; meshMapped: boolean }>(
+      `/projects/${projectId}/scene/map`,
+      { method: "POST", body: JSON.stringify({ apartmentId, meshNode }) },
+    ),
+
+  autoMap: (projectId: number) =>
+    apiFetch<{ mapped: number; total: number }>(
+      `/projects/${projectId}/scene/auto-map`,
+      { method: "POST", body: "{}" },
+    ),
+
+  publish: (projectId: number, assetId: number) =>
+    apiFetch<{ id: number; status: string; version: number }>(
+      `/projects/${projectId}/scene/publish`,
+      { method: "POST", body: JSON.stringify({ assetId }) },
+    ),
+};
+
 // ── Apartments ────────────────────────────────────────────────────────────────
 
 export const apartmentsApi = {
