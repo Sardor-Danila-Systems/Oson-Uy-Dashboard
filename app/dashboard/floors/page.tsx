@@ -111,7 +111,7 @@ export default function FloorsPage() {
       setError(null);
       const [currentDeveloper, allProjects, allFloors] = await Promise.all([
         apiFetch<{ id: number; name: string }>("/developers"),
-        apiFetch<ProjectOption[]>("/projects"),
+        apiFetch<ProjectOption[]>("/projects/mine"),
         apiFetch<ProjectFloor[]>("/floors"),
       ]);
 

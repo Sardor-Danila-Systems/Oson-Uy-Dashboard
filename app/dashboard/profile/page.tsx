@@ -84,7 +84,7 @@ export default function ProfilePage() {
         description?: string | null;
         logoUrl?: string | null;
       }>("/developers"),
-      apiFetch<Project[]>("/projects"),
+      apiFetch<Project[]>("/projects/mine"),
     ]);
     setDeveloperId(developer.id);
     setName(developer.name);

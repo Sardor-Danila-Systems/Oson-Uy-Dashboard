@@ -105,7 +105,7 @@ export default function ProgressPage() {
     try {
       const [dev, all] = await Promise.all([
         apiFetch<Developer>("/developers"),
-        apiFetch<Project[]>("/projects"),
+        apiFetch<Project[]>("/projects/mine"),
       ]);
       const own = all.filter((p) => p.developerId === dev.id);
       setProjects(own);

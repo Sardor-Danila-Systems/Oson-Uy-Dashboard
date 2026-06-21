@@ -125,7 +125,7 @@ export default function LeadsPage() {
       window.localStorage.setItem(STORAGE_KEY, currentDeveloper.name);
       const allProjects = await apiFetch<
         Array<{ id: number; name: string; developerId: number }>
-      >("/projects");
+      >("/projects/mine");
       const own = allProjects.filter((p) => p.developerId === currentDeveloper.id);
       setProjectOptions(own.map((p) => ({ id: p.id, name: p.name })));
 

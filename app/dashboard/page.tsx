@@ -47,7 +47,7 @@ export default function DashboardOverview() {
         setLoading(true);
         const leads = await apiFetch<any[]>("/leads");
         const feedbacks = await apiFetch<any>("/leads/feedback/summary");
-        const projects = await apiFetch<any[]>("/projects");
+        const projects = await apiFetch<any[]>("/projects/mine");
         const currentDev = await apiFetch<any>("/developers");
 
         const devLeads = leads.filter(l => l.project?.developerId === currentDev.id);

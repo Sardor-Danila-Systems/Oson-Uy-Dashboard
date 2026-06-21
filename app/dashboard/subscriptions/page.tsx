@@ -45,7 +45,7 @@ export default function SubscriptionsPage() {
   const loadData = React.useCallback(async () => {
     try {
       setLoading(true);
-      const projectsData = await apiFetch<any[]>("/projects");
+      const projectsData = await apiFetch<any[]>("/projects/mine");
       const currentDeveloper = await apiFetch<any>("/developers");
       setProjects(projectsData.filter(p => p.developerId === currentDeveloper.id));
     } catch (err) {

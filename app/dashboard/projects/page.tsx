@@ -136,7 +136,7 @@ export default function ProjectsPage() {
     try {
       setLoading(true);
       setError(null);
-      const projectsData = await apiFetch<any[]>("/projects");
+      const projectsData = await apiFetch<any[]>("/projects/mine");
       const currentDeveloper = await apiFetch<Developer>("/developers");
       
       setActiveDeveloperId(currentDeveloper.id);
