@@ -10,6 +10,7 @@ import {
   getToken,
 } from "@/lib/api";
 import { formatUzs } from "@/lib/currency";
+import { compressImage } from "@/lib/image";
 import { 
   Plus, 
   Building2, 
@@ -22,6 +23,7 @@ import {
   CheckCircle2,
   AlertCircle,
   QrCode,
+  Trash2,
   ChevronRight,
   Edit2,
   Loader2,
@@ -250,7 +252,9 @@ export default function ProjectsPage() {
         totalFloors: Number(form.totalFloors) || 0,
         totalUnits: Number(form.totalUnits) || 0,
         mapEmbedUrl: toEmbedMapUrl(form.mapEmbedUrl),
-        imageUrls: uploadedImageUrls.length ? uploadedImageUrls : undefined,
+        // Always send the array (even empty) when editing so removed photos
+        // are actually deleted; for a brand-new project an empty array is fine.
+        imageUrls: editingId ? uploadedImageUrls : uploadedImageUrls.length ? uploadedImageUrls : undefined,
         developerId: activeDeveloperId,
       };
 
@@ -289,7 +293,7 @@ export default function ProjectsPage() {
       const uploaded = await Promise.all(
         selectedFiles.map(async (file) => {
           const formData = new FormData();
-          formData.append("file", file);
+          formData.append("file", await compressImage(file));
           const res = await fetch(`${API_URL}/upload/image`, {
             method: "POST",
             headers: { Authorization: `Bearer ${getToken()}` },
@@ -306,6 +310,15 @@ export default function ProjectsPage() {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const removeUploadedImage = (url: string) => {
+    setUploadedImageUrls((prev) => {
+      const next = prev.filter((u) => u !== url);
+      // If the removed image was the cover, fall back to the first remaining one
+      setForm((f) => (f.imageUrl === url ? { ...f, imageUrl: next[0] ?? "" } : f));
+      return next;
+    });
   };
 
   const uploadProjectQr = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -611,9 +624,21 @@ export default function ProjectsPage() {
                 {uploadedImageUrls.length > 0 && (
                   <div className="grid grid-cols-4 gap-2 mt-4">
                     {uploadedImageUrls.map((url, i) => (
-                      <div key={i} className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${form.imageUrl === url ? "border-orange-500 shadow-lg" : "border-transparent opacity-60 hover:opacity-100"}`} onClick={() => setForm(f => ({ ...f, imageUrl: url }))}>
+                      <div key={i} className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all cursor-pointer group ${form.imageUrl === url ? "border-orange-500 shadow-lg" : "border-transparent opacity-60 hover:opacity-100"}`} onClick={() => setForm(f => ({ ...f, imageUrl: url }))}>
                         <img src={url} className="h-full w-full object-cover" />
-                        {form.imageUrl === url && <div className="absolute inset-0 bg-orange-500/10 flex items-center justify-center"><CheckCircle2 className="text-white h-6 w-6" /></div>}
+                        {form.imageUrl === url && (
+                          <span className="absolute top-1 left-1 rounded-md bg-orange-500 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-white">
+                            {t("form.cover")}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeUploadedImage(url); }}
+                          className="absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white opacity-0 transition group-hover:opacity-100 hover:bg-red-500"
+                          aria-label="delete"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     ))}
                   </div>

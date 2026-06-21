@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { API_URL, apiFetch, getToken } from "@/lib/api";
+import { compressImage } from "@/lib/image";
 import { useTranslations } from "next-intl";
 import { CheckCircle2, ChevronDown, ChevronUp, Plus, Save, Trash2 } from "lucide-react";
 
@@ -67,7 +68,7 @@ export default function ProgressPage() {
     const token = getToken();
     if (!token) throw new Error("Unauthorized");
     const form = new FormData();
-    form.append("file", file);
+    form.append("file", await compressImage(file));
     const res = await fetch(`${API_URL}/upload/image`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },

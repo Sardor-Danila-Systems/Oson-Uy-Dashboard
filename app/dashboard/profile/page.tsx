@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch, API_URL, getToken } from "@/lib/api";
+import { compressImage } from "@/lib/image";
 import { useTranslations } from "next-intl";
 import {
   Building2,
@@ -200,7 +201,7 @@ export default function ProfilePage() {
     setCompanyError(null);
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", await compressImage(file));
       const res = await fetch(`${API_URL}/upload/image`, {
         method: "POST",
         headers: { Authorization: `Bearer ${getToken()}` },
@@ -312,6 +313,16 @@ export default function ProfilePage() {
                         />
                       </label>
                     )}
+                    {editing && form.logoUrl ? (
+                      <button
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, logoUrl: "" }))}
+                        className="absolute -top-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-white shadow-md transition hover:bg-red-600"
+                        title={t("removeLogo")}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    ) : null}
                   </div>
 
                   <h3 className="mt-4 text-2xl font-bold text-[#1E3A8A]">

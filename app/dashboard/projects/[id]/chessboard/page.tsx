@@ -25,6 +25,7 @@ import {
   formatUzsPerM2,
   parseMoneyInput,
 } from "@/lib/currency";
+import { compressImage } from "@/lib/image";
 import { formatPhoneNumber } from "@/lib/format";
 import { hasUltimateWorkspaceAccess } from "@/lib/subscription-access";
 import ContractCreateModal from "@/components/crm/ContractCreateModal";
@@ -456,7 +457,7 @@ export default function ChessboardPage() {
     const token = getToken();
     if (!token) return;
     const form = new FormData();
-    form.append("file", file);
+    form.append("file", await compressImage(file));
     const res = await fetch(`${API_URL}/upload/image`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },

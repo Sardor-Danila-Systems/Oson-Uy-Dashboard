@@ -9,6 +9,7 @@ import {
   getToken,
 } from "@/lib/api";
 import { formatMoneyInput, formatUzs, parseMoneyInput } from "@/lib/currency";
+import { compressImage } from "@/lib/image";
 import {
   Plus,
   Layers,
@@ -148,7 +149,7 @@ export default function FloorsPage() {
 
   const uploadLayoutFile = async (file: File) => {
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", await compressImage(file));
     const response = await fetch(`${API_URL}/upload/image`, {
       method: "POST",
       headers: adminHeaders(false),
