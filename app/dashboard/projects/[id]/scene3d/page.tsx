@@ -22,7 +22,10 @@ import {
   Asset3DKind,
 } from "@/lib/crm-api";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+// Public marketplace site (NOT the dashboard) — the 3D viewer lives there.
+const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://oson-uy.uz"
+).replace(/\/$/, "");
 
 const STATUS_STYLE: Record<string, string> = {
   UPLOADED: "bg-slate-100 text-slate-600",
