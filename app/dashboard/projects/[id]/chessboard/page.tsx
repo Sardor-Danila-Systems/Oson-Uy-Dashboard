@@ -16,6 +16,8 @@ import {
   Users,
   SlidersHorizontal,
   ExternalLink,
+  Pencil,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { API_URL, apiFetch, getToken } from "@/lib/api";
@@ -214,6 +216,21 @@ export default function ChessboardPage() {
   const [editModelUrl, setEditModelUrl] = useState("");
   const [unitSaving, setUnitSaving] = useState(false);
   const [contractModalOpen, setContractModalOpen] = useState(false);
+
+  // ── Batch edit (по блокам/этажам) ─────────────────────────────────────────
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchSection, setBatchSection] = useState("");
+  const [batchFloor, setBatchFloor] = useState(""); // "" = весь блок
+  const [batchPricePerM2, setBatchPricePerM2] = useState("");
+  const [batchArea, setBatchArea] = useState("");
+  const [batchRooms, setBatchRooms] = useState("");
+  const [batchStatus, setBatchStatus] = useState<AptStatus | "">("");
+  const [batchLayoutUrl, setBatchLayoutUrl] = useState("");
+  const [batchSaving, setBatchSaving] = useState(false);
+  const [batchUploading, setBatchUploading] = useState(false);
+  const [batchError, setBatchError] = useState<string | null>(null);
+  const [batchNotice, setBatchNotice] = useState<string | null>(null);
+  const [deletingBlock, setDeletingBlock] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!projectId || Number.isNaN(projectId)) return;
@@ -507,6 +524,123 @@ export default function ChessboardPage() {
     }
   };
 
+  // ── Batch edit helpers ──────────────────────────────────────────────────────
+  const batchFloorOptions = useMemo(() => {
+    const set = new Set<number>();
+    for (const a of list)
+      if ((a.sectionKey ?? "") === batchSection) set.add(a.floor);
+    return [...set].sort((x, y) => x - y);
+  }, [list, batchSection]);
+
+  const batchAffected = useMemo(
+    () =>
+      list.filter(
+        (a) =>
+          (a.sectionKey ?? "") === batchSection &&
+          (batchFloor === "" || a.floor === Number(batchFloor)),
+      ).length,
+    [list, batchSection, batchFloor],
+  );
+
+  const resetBatch = () => {
+    setBatchPricePerM2("");
+    setBatchArea("");
+    setBatchRooms("");
+    setBatchStatus("");
+    setBatchLayoutUrl("");
+    setBatchError(null);
+    setBatchNotice(null);
+  };
+
+  const uploadBatchLayout = async (file: File) => {
+    setBatchUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", await compressImage(file));
+      const res = await fetch(`${API_URL}/upload/image`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: form,
+      });
+      if (!res.ok) throw new Error("upload");
+      const data = (await res.json()) as { url?: string };
+      if (data?.url) setBatchLayoutUrl(data.url);
+    } catch {
+      setBatchError("Не удалось загрузить планировку");
+    } finally {
+      setBatchUploading(false);
+    }
+  };
+
+  const submitBatch = async () => {
+    setBatchError(null);
+    setBatchNotice(null);
+    const body: Record<string, unknown> = { sectionKey: batchSection };
+    if (batchFloor !== "") body.floor = Number(batchFloor);
+    if (batchPricePerM2.trim())
+      body.pricePerM2Uzs = parseMoneyInput(batchPricePerM2);
+    if (batchArea.trim()) body.areaSqm = Number(batchArea.replace(",", "."));
+    if (batchRooms.trim()) body.rooms = Number(batchRooms);
+    if (batchStatus) body.status = batchStatus;
+    if (batchLayoutUrl.trim()) body.layoutImageUrl = batchLayoutUrl.trim();
+
+    const hasField =
+      "pricePerM2Uzs" in body ||
+      "areaSqm" in body ||
+      "rooms" in body ||
+      "status" in body ||
+      "layoutImageUrl" in body;
+    if (!hasField) {
+      setBatchError("Заполните хотя бы одно поле для изменения");
+      return;
+    }
+
+    setBatchSaving(true);
+    try {
+      const res = await apiFetch<{ updated: number }>(
+        `/projects/${projectId}/apartments/bulk-update`,
+        { method: "PATCH", body: JSON.stringify(body) },
+      );
+      setBatchNotice(`Изменено квартир: ${res.updated}`);
+      resetBatch();
+      await load();
+    } catch {
+      setBatchError("Ошибка массового изменения");
+    } finally {
+      setBatchSaving(false);
+    }
+  };
+
+  const deleteBlock = async (sectionKeys: string[], label: string) => {
+    const keys = [...new Set(sectionKeys)];
+    if (
+      !confirm(
+        `Удалить весь блок «${label || "(без кода)"}» со всеми квартирами? Это действие необратимо.`,
+      )
+    )
+      return;
+    setDeletingBlock(label);
+    try {
+      for (const sectionKey of keys) {
+        await apiFetch(`/projects/${projectId}/apartments/delete-section`, {
+          method: "POST",
+          body: JSON.stringify({ sectionKey }),
+        });
+      }
+      if (keys.includes(batchSection)) {
+        setBatchSection("");
+        setBatchOpen(false);
+      }
+      await load();
+    } catch {
+      alert(
+        "Не удалось удалить блок. Возможно, в нём есть квартиры с договорами — сначала удалите договоры.",
+      );
+    } finally {
+      setDeletingBlock(null);
+    }
+  };
+
   const updateBulkRow = (
     index: number,
     patch: Partial<BulkSectionForm>,
@@ -703,6 +837,21 @@ export default function ChessboardPage() {
             <LayoutGrid className="h-4 w-4" />
             {t("bulk.open")}
           </button>
+          {sectionOptions.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                resetBatch();
+                setBatchSection((s) => s || sectionOptions[0] || "");
+                setBatchFloor("");
+                setBatchOpen(true);
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black uppercase tracking-widest text-slate-800 shadow-sm transition hover:bg-slate-50"
+            >
+              <Pencil className="h-4 w-4" />
+              Редактировать блок/этаж
+            </button>
+          )}
           <div className="flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-widest">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-emerald-800">
               <span className="h-2 w-2 rounded-full bg-emerald-500" /> Свободна
@@ -891,8 +1040,28 @@ export default function ChessboardPage() {
               {blocks.map(({ block, cols }) => (
                 <div key={block || "__root__"} className="shrink-0">
                   {/* Заголовок блока */}
-                  <div className="mb-0.5 flex h-6 items-center justify-center rounded-lg bg-slate-100 px-3 text-[10px] font-black uppercase tracking-wider text-[#1E3A8A]">
-                    {block ? t("blockTitle", { code: block }) : t("blockDefault")}
+                  <div className="group/blk mb-0.5 flex h-6 items-center justify-center gap-1 rounded-lg bg-slate-100 px-2 text-[10px] font-black uppercase tracking-wider text-[#1E3A8A]">
+                    <span className="truncate">
+                      {block ? t("blockTitle", { code: block }) : t("blockDefault")}
+                    </span>
+                    <button
+                      type="button"
+                      title="Удалить блок"
+                      disabled={deletingBlock != null}
+                      onClick={() =>
+                        void deleteBlock(
+                          cols.map((c) => c.fullKey),
+                          block,
+                        )
+                      }
+                      className="opacity-0 transition group-hover/blk:opacity-100 hover:text-red-500 disabled:opacity-40"
+                    >
+                      {deletingBlock === block ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3 w-3" />
+                      )}
+                    </button>
                   </div>
 
                   {/* Подзаголовок: подъезды */}
@@ -1684,6 +1853,205 @@ export default function ChessboardPage() {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {batchOpen && (
+        <div className="fixed inset-0 z-[115] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-100 p-6">
+              <div>
+                <h2 className="text-xl font-black text-[#1E3A8A]">
+                  Редактирование квартир
+                </h2>
+                <p className="mt-1 text-xs font-medium text-slate-700">
+                  Измените блок целиком или конкретный этаж разом
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBatchOpen(false)}
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-5">
+              {batchNotice && (
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
+                  {batchNotice}
+                </div>
+              )}
+              {batchError && (
+                <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-sm font-bold text-red-700">
+                  {batchError}
+                </div>
+              )}
+
+              {/* Block + floor selectors */}
+              <div className="grid grid-cols-2 gap-3">
+                <label className="space-y-1">
+                  <span className={bulkLabelClass}>Блок</span>
+                  <select
+                    className={bulkInputClass}
+                    value={batchSection}
+                    onChange={(e) => {
+                      setBatchSection(e.target.value);
+                      setBatchFloor("");
+                    }}
+                  >
+                    {sectionOptions.map((sk) => (
+                      <option key={sk || "__empty"} value={sk}>
+                        {sk ? t("blockTitle", { code: sk }) : t("blockDefault")}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-1">
+                  <span className={bulkLabelClass}>Этаж</span>
+                  <select
+                    className={bulkInputClass}
+                    value={batchFloor}
+                    onChange={(e) => setBatchFloor(e.target.value)}
+                  >
+                    <option value="">Весь блок</option>
+                    {batchFloorOptions.map((f) => (
+                      <option key={f} value={String(f)}>
+                        {f} этаж
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="rounded-xl bg-blue-50/70 border border-blue-100 px-3 py-2 text-xs font-bold text-slate-700">
+                Будет изменено квартир: {batchAffected}
+              </div>
+
+              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                Заполните только нужные поля
+              </p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <label className="space-y-1">
+                  <span className={bulkLabelClass}>Цена за м² (сум)</span>
+                  <input
+                    className={bulkInputClass}
+                    inputMode="numeric"
+                    value={batchPricePerM2}
+                    onChange={(e) =>
+                      setBatchPricePerM2(formatMoneyInput(e.target.value))
+                    }
+                    placeholder="9 500 000"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className={bulkLabelClass}>Площадь (м²)</span>
+                  <input
+                    className={bulkInputClass}
+                    inputMode="decimal"
+                    value={batchArea}
+                    onChange={(e) => setBatchArea(e.target.value)}
+                    placeholder="—"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className={bulkLabelClass}>Комнат</span>
+                  <input
+                    className={bulkInputClass}
+                    inputMode="numeric"
+                    value={batchRooms}
+                    onChange={(e) => setBatchRooms(e.target.value)}
+                    placeholder="—"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className={bulkLabelClass}>Статус</span>
+                  <select
+                    className={bulkInputClass}
+                    value={batchStatus}
+                    onChange={(e) =>
+                      setBatchStatus(e.target.value as AptStatus | "")
+                    }
+                  >
+                    <option value="">— не менять —</option>
+                    {(
+                      ["AVAILABLE", "RESERVED", "SOLD", "INSTALLMENT", "MORTGAGE", "UNAVAILABLE"] as AptStatus[]
+                    ).map((s) => (
+                      <option key={s} value={s}>
+                        {STATUS_LABEL[s]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {/* Layout photo */}
+              <div className="space-y-2">
+                <span className={bulkLabelClass}>Планировка (применить ко всем)</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-dashed border-slate-200 bg-slate-50">
+                    {batchLayoutUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={batchLayoutUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <ImageIcon className="h-6 w-6 text-slate-300" />
+                    )}
+                  </div>
+                  <label className="flex-1 cursor-pointer rounded-xl border border-slate-200 px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-700 hover:bg-slate-50">
+                    {batchUploading ? "Загрузка…" : batchLayoutUrl ? "Заменить фото" : "Загрузить планировку"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void uploadBatchLayout(f);
+                      }}
+                    />
+                  </label>
+                  {batchLayoutUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setBatchLayoutUrl("")}
+                      className="rounded-xl p-2 text-slate-300 hover:bg-red-50 hover:text-red-500"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => void deleteBlock([batchSection], batchSection)}
+                disabled={deletingBlock != null}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 py-3 text-xs font-black uppercase tracking-widest text-red-700 hover:bg-red-100 disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" /> Удалить весь блок «{batchSection || "—"}»
+              </button>
+            </div>
+
+            <div className="flex shrink-0 gap-3 border-t border-slate-100 p-6">
+              <button
+                type="button"
+                onClick={() => setBatchOpen(false)}
+                className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm font-black uppercase tracking-widest text-slate-600"
+              >
+                Закрыть
+              </button>
+              <button
+                type="button"
+                disabled={batchSaving || batchAffected === 0}
+                onClick={() => void submitBatch()}
+                className="flex flex-[2] items-center justify-center gap-2 rounded-2xl bg-[#F97316] py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg disabled:opacity-50"
+              >
+                {batchSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
+                Применить
+              </button>
             </div>
           </div>
         </div>
