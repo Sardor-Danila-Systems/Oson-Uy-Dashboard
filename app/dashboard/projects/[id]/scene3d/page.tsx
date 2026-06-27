@@ -108,7 +108,7 @@ export default function Scene3DPage() {
       setBuildingKey("");
       if (fileRef.current) fileRef.current.value = "";
       await load();
-      flash("Модель загружена. Нажмите «Обработать».");
+      flash("Модель загружена — идёт обработка. Дождитесь статуса READY и нажмите «Опубликовать».");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
     } finally {
@@ -330,6 +330,25 @@ export default function Scene3DPage() {
           </ul>
         )}
       </div>
+
+      {/* Model has no apartment objects → nothing will be clickable */}
+      {mapping && nodeOptions.length === 0 ? (
+        <div className="rounded-[2rem] border-2 border-amber-200 bg-amber-50 p-6">
+          <p className="flex items-center gap-2 text-sm font-black text-amber-900">
+            <AlertTriangle className="h-5 w-5 shrink-0" />
+            В модели не найдено объектов квартир
+          </p>
+          <p className="mt-2 text-sm font-medium leading-relaxed text-amber-800">
+            Загруженная модель состоит из {mapping.nodes.length || 1} объекта(ов)
+            без разметки квартир — поэтому в 3D <b>нельзя будет кликать по
+            квартирам</b>. Чтобы это работало, подготовьте модель в 3D-редакторе:
+            каждую квартиру сделайте <b>отдельным объектом</b> и назовите{" "}
+            <code className="rounded bg-amber-100 px-1">APT_блок_этаж_номер</code>{" "}
+            (например <code className="rounded bg-amber-100 px-1">APT_1_3_07</code>),
+            затем перезалейте .glb. Само здание при этом отображается корректно.
+          </p>
+        </div>
+      ) : null}
 
       {/* Mapping */}
       {mapping ? (

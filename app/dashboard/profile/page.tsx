@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch, API_URL, getToken } from "@/lib/api";
 import { compressImage } from "@/lib/image";
+import { formatPhoneInput } from "@/lib/format";
 import { useTranslations } from "next-intl";
 import {
   Building2,
@@ -91,7 +92,7 @@ export default function ProfilePage() {
     setName(developer.name);
     setTelegramLinked(Boolean(developer.telegramLinked));
     const next: CompanyForm = {
-      phone: developer.phone ?? "",
+      phone: formatPhoneInput(developer.phone ?? ""),
       legalAddress: developer.legalAddress ?? "",
       officeAddress: developer.officeAddress ?? "",
       website: developer.website ?? "",
@@ -354,9 +355,15 @@ export default function ProfilePage() {
                         </span>
                         <input
                           type="tel"
+                          inputMode="tel"
+                          autoComplete="tel"
+                          placeholder="+998 90 123 45 67"
                           value={form.phone}
                           onChange={(e) =>
-                            setForm((p) => ({ ...p, phone: e.target.value }))
+                            setForm((p) => ({
+                              ...p,
+                              phone: formatPhoneInput(e.target.value),
+                            }))
                           }
                           className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#1E3A8A]"
                         />
