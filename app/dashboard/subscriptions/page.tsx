@@ -140,7 +140,7 @@ export default function SubscriptionsPage() {
 
       <div className="grid gap-8 lg:grid-cols-3">
         {PLANS_CONFIG.map((plan) => (
-          <div key={plan.id} className={`relative group rounded-[3rem] border border-slate-100 bg-white p-10 shadow-sm transition-all hover:shadow-2xl hover:-translate-y-2 flex flex-col ${plan.isPopular ? 'ring-4 ring-orange-500/10' : ''}`}>
+          <div key={plan.id} className={`relative group rounded-[2rem] sm:rounded-[3rem] border border-slate-100 bg-white p-6 sm:p-10 shadow-sm transition-all hover:shadow-2xl hover:-translate-y-2 flex flex-col ${plan.isPopular ? 'ring-4 ring-orange-500/10' : ''}`}>
             {plan.isPopular && (
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-[10px] font-black uppercase px-6 py-2 rounded-full shadow-lg z-10 tracking-[0.2em]">
                 {t("popular")}

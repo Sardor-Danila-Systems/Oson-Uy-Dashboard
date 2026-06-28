@@ -382,12 +382,12 @@ export default function ProjectsPage() {
             <div className="relative h-64">
               <img src={project.imageUrl} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" alt={project.name} />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
-              <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
+              <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-3 sm:bottom-6 sm:left-6 sm:right-6 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <span className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1 block">{project.location}</span>
-                  <h3 className="text-2xl font-black text-white tracking-tight">{project.name}</h3>
+                  <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">{project.name}</h3>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {(() => {
                     const ultraOk = hasUltimateWorkspaceAccess({
                       plan: project.plan,
@@ -465,17 +465,23 @@ export default function ProjectsPage() {
                             <Lock className="h-4 w-4" />
                           </Link>
                         )}
+                        {ultraOk ? (
+                          <Link
+                            href={`/dashboard/projects/${project.id}/scene3d`}
+                            className={openCls}
+                            title="3D-модель"
+                            aria-label="3D-модель"
+                          >
+                            <Box className="h-4 w-4" />
+                          </Link>
+                        ) : (
+                          <Link href="/dashboard/subscriptions" className={lockCls} title="3D — только Ultra">
+                            <Lock className="h-4 w-4" />
+                          </Link>
+                        )}
                       </>
                     );
                   })()}
-                  <Link
-                    href={`/dashboard/projects/${project.id}/scene3d`}
-                    className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all"
-                    title="3D-модель"
-                    aria-label="3D-модель"
-                  >
-                    <Box className="h-4 w-4" />
-                  </Link>
                   <Link
                     href={`/dashboard/progress?projectId=${project.id}`}
                     className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all"

@@ -376,31 +376,36 @@
           "name": "Start",
           "features": [
             "Loyiha uchun 3 tagacha surat",
-            "Majmua haqida asosiy ma'lumot",
-            "Katalogda standart joylashtirish",
-            "Arizalar statistikasiga kirish",
+            "Katalogda joylashtirish va majmua haqida ma'lumot",
+            "Qavatlar, maydonlar va planirovkalar",
+            "Qurilish jarayoni (progress)",
+            "Arizalar va arizalar statistikasi",
             "Email orqali qo'llab-quvvatlash"
           ]
         },
         "PRO": {
           "name": "Pro",
           "features": [
+            "Start tarifidagi hamma narsa",
             "Loyiha uchun 7 tagacha surat",
-            "Video qo'shish imkoniyati (YouTube/Insta)",
-            " 'Verified Developer' belgisi",
-            "Ustuvor qo'llab-quvvatlash",
-            "Kengaytirilgan tahliliy ma'lumotlar"
+            "Loyiha videosi (YouTube / Instagram)",
+            "«Verified Developer» belgisi",
+            "«Ommabop» belgisi va katalog tepasida",
+            "Ustuvor qo'llab-quvvatlash"
           ]
         },
         "ULTIMATE": {
           "name": "Ultra",
           "features": [
-            "Cheksiz miqdordagi suratlar",
-            " 'Ommabop' va 'Tekshirilgan' belgilari",
-            "Har doim tavsiyalar tepasida",
-            "Shaxsiy menejer",
-            "Hisobotlarni PDF/Excel-da yuklab olish",
-            "Kvartiralar shaxmatkasi va xaridorlar CRM — saytdagi shaxsiy kabinet uchun kodlar"
+            "Pro tarifidagi hamma narsa",
+            "Cheksiz suratlar",
+            "«Tekshirilgan» belgisi va bosh sahifa tepasida",
+            "Majmuaning 3D-modeli (yuklash va saytda ko'rish)",
+            "Kvartiralar shaxmatkasi",
+            "Xaridorlar CRM — shaxsiy kabinet uchun kodlar",
+            "Shartnomalar: Word-da yaratish va to'lov grafiklari",
+            "Sotuv hisobotlari va tahlili (PDF / Excel)",
+            "Shaxsiy menejer"
           ]
         }
       }

@@ -21,6 +21,8 @@ import {
   Scene3DMapping,
   Asset3DKind,
 } from "@/lib/crm-api";
+import { apiFetch } from "@/lib/api";
+import { hasUltimateWorkspaceAccess } from "@/lib/subscription-access";
 
 // Public marketplace site (NOT the dashboard) — the 3D viewer lives there.
 const SITE_URL = (
@@ -46,6 +48,7 @@ export default function Scene3DPage() {
   const [info, setInfo] = useState<Scene3DInfo | null>(null);
   const [mapping, setMapping] = useState<Scene3DMapping | null>(null);
   const [loading, setLoading] = useState(true);
+  const [planLocked, setPlanLocked] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -58,6 +61,13 @@ export default function Scene3DPage() {
 
   const load = useCallback(async () => {
     try {
+      const proj = await apiFetch<{
+        subscription?: { plan: string; status: string };
+      }>(`/projects/${projectId}`);
+      if (!hasUltimateWorkspaceAccess(proj.subscription)) {
+        setPlanLocked(true);
+        return;
+      }
       const i = await scenes3dApi.info(projectId);
       setInfo(i);
       if (i.assets.some((a) => a.status === "READY")) {
@@ -144,6 +154,36 @@ export default function Scene3DPage() {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-[#1E3A8A]" />
+      </div>
+    );
+  }
+
+  if (planLocked) {
+    return (
+      <div className="mx-auto flex max-w-lg flex-col items-center gap-6 px-4 py-20 text-center">
+        <Box className="h-12 w-12 text-[#1E3A8A]" />
+        <h1 className="text-2xl font-black text-[#1E3A8A] md:text-3xl">
+          3D-модель — только на тарифе Ultra
+        </h1>
+        <p className="text-sm font-medium leading-relaxed text-slate-600 md:text-base">
+          Загрузка и публикация 3D-модели ЖК доступна на тарифе Ultra (ULTIMATE).
+          Перейдите на Ultra, чтобы показать покупателям интерактивную 3D-модель
+          на сайте.
+        </p>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Link
+            href="/dashboard/subscriptions"
+            className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#1E3A8A] px-8 text-sm font-black uppercase tracking-widest text-white shadow-lg hover:bg-[#172554]"
+          >
+            Перейти на Ultra
+          </Link>
+          <Link
+            href="/dashboard/projects"
+            className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-8 text-sm font-black uppercase tracking-widest text-slate-800 hover:bg-slate-50"
+          >
+            Назад
+          </Link>
+        </div>
       </div>
     );
   }
