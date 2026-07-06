@@ -12,6 +12,8 @@ import {
   Clock,
   Plus,
   Loader2,
+  Pencil,
+  X,
 } from "lucide-react";
 import {
   contractsApi,
@@ -67,6 +69,124 @@ export default function ContractDetailPage() {
   const [payLoading, setPayLoading] = useState(false);
   const [payDayEdit, setPayDayEdit] = useState("");
   const [savingDay, setSavingDay] = useState(false);
+
+  // ── Editing (fix sales-team mistakes) ──────────────────────────────────────
+  const [editOpen, setEditOpen] = useState(false);
+  const [edTotal, setEdTotal] = useState("");
+  const [edFirst, setEdFirst] = useState("");
+  const [edTerm, setEdTerm] = useState("");
+  const [edDiscount, setEdDiscount] = useState("");
+  const [edMethod, setEdMethod] = useState<PaymentMethod>("INSTALLMENT");
+  const [edStatus, setEdStatus] = useState("ACTIVE");
+  const [edNotes, setEdNotes] = useState("");
+  const [edSaving, setEdSaving] = useState(false);
+  const [edError, setEdError] = useState<string | null>(null);
+
+  const [schedEditId, setSchedEditId] = useState<number | null>(null);
+  const [schedAmount, setSchedAmount] = useState("");
+  const [schedDate, setSchedDate] = useState("");
+  const [schedSaving, setSchedSaving] = useState(false);
+
+  const [payEditId, setPayEditId] = useState<number | null>(null);
+  const [payEditAmount, setPayEditAmount] = useState("");
+  const [payEditDate, setPayEditDate] = useState("");
+  const [payEditComment, setPayEditComment] = useState("");
+  const [payEditSaving, setPayEditSaving] = useState(false);
+
+  const openEdit = () => {
+    if (!contract) return;
+    setEdTotal(formatMoneyInput(String(contract.totalPriceUzs)));
+    setEdFirst(formatMoneyInput(String(contract.firstPaymentUzs)));
+    setEdTerm(String(contract.termMonths));
+    setEdDiscount(String(contract.discountPercent ?? 0));
+    setEdMethod(contract.paymentMethod);
+    setEdStatus(contract.status);
+    setEdNotes(contract.notes ?? "");
+    setEdError(null);
+    setEditOpen(true);
+  };
+
+  const saveEdit = async () => {
+    setEdSaving(true);
+    setEdError(null);
+    try {
+      const updated = await contractsApi.update(projectId, contractId, {
+        totalPriceUzs: parseMoneyInput(edTotal),
+        firstPaymentUzs: parseMoneyInput(edFirst),
+        termMonths: Math.max(1, parseInt(edTerm || "1", 10)),
+        discountPercent: Number(edDiscount) || 0,
+        paymentMethod: edMethod,
+        status: edStatus,
+        notes: edNotes.trim() || null,
+      });
+      setContract(updated);
+      setEditOpen(false);
+    } catch {
+      setEdError("Не удалось сохранить изменения");
+    } finally {
+      setEdSaving(false);
+    }
+  };
+
+  const startSchedEdit = (item: {
+    id: number;
+    amountUzs: string;
+    dueDate: string;
+  }) => {
+    setSchedEditId(item.id);
+    setSchedAmount(formatMoneyInput(String(item.amountUzs)));
+    setSchedDate(item.dueDate.split("T")[0]);
+  };
+
+  const saveSchedEdit = async () => {
+    if (schedEditId == null) return;
+    setSchedSaving(true);
+    try {
+      const updated = await contractsApi.updateScheduleItem(
+        projectId,
+        contractId,
+        schedEditId,
+        { amountUzs: parseMoneyInput(schedAmount), dueDate: schedDate },
+      );
+      setContract(updated);
+      setSchedEditId(null);
+    } finally {
+      setSchedSaving(false);
+    }
+  };
+
+  const startPayEdit = (p: {
+    id: number;
+    amountUzs: string;
+    paidAt: string;
+    comment: string | null;
+  }) => {
+    setPayEditId(p.id);
+    setPayEditAmount(formatMoneyInput(String(p.amountUzs)));
+    setPayEditDate(p.paidAt.split("T")[0]);
+    setPayEditComment(p.comment ?? "");
+  };
+
+  const savePayEdit = async () => {
+    if (payEditId == null) return;
+    setPayEditSaving(true);
+    try {
+      const updated = await contractsApi.updatePayment(
+        projectId,
+        contractId,
+        payEditId,
+        {
+          amountUzs: parseMoneyInput(payEditAmount),
+          paidAt: payEditDate,
+          comment: payEditComment.trim() || null,
+        },
+      );
+      setContract(updated);
+      setPayEditId(null);
+    } finally {
+      setPayEditSaving(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -184,8 +304,15 @@ export default function ContractDetailPage() {
           </span>
         </div>
 
-        {/* Download */}
-        <div className="relative">
+        {/* Actions */}
+        <div className="relative flex items-center gap-2">
+          <button
+            onClick={openEdit}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 text-sm font-bold hover:bg-slate-50 transition"
+          >
+            <Pencil className="h-4 w-4" />
+            Изменить
+          </button>
           <button
             onClick={() => setDownloadOpen((v) => !v)}
             disabled={downloadingType != null}
@@ -380,34 +507,89 @@ export default function ContractDetailPage() {
                     Платежей нет
                   </p>
                 ) : (
-                  contract.payments.map((p, i) => (
-                    <div
-                      key={p.id}
-                      className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50"
-                    >
-                      <span className="text-xs text-slate-400 w-5 text-center">
-                        {i + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-black text-slate-900 text-sm">
-                          {fmt(p.amountUzs)} сум
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          {new Date(p.paidAt).toLocaleDateString("ru-RU")}
-                          {p.comment ? ` · ${p.comment}` : ""}
-                        </p>
-                      </div>
-                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 uppercase">
-                        Оплачено
-                      </span>
-                      <button
-                        onClick={() => handleDeletePayment(p.id)}
-                        className="p-1.5 rounded-xl hover:bg-red-50 text-slate-300 hover:text-red-500 transition"
+                  contract.payments.map((p, i) =>
+                    payEditId === p.id ? (
+                      <div
+                        key={p.id}
+                        className="space-y-2 rounded-2xl border-2 border-[#1E3A8A]/30 bg-blue-50/50 p-3"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ))
+                        <p className="text-[10px] font-black uppercase tracking-widest text-[#1E3A8A]">
+                          Изменение платежа
+                        </p>
+                        <div className="flex gap-2">
+                          <input
+                            value={payEditAmount}
+                            onChange={(e) =>
+                              setPayEditAmount(formatMoneyInput(e.target.value))
+                            }
+                            inputMode="numeric"
+                            className="flex-1 h-9 px-3 text-sm font-bold text-slate-900 border border-slate-200 rounded-xl outline-none focus:border-[#1E3A8A] bg-white"
+                          />
+                          <input
+                            type="date"
+                            value={payEditDate}
+                            onChange={(e) => setPayEditDate(e.target.value)}
+                            className="h-9 px-2 text-sm text-slate-900 border border-slate-200 rounded-xl outline-none focus:border-[#1E3A8A] bg-white"
+                          />
+                        </div>
+                        <input
+                          value={payEditComment}
+                          onChange={(e) => setPayEditComment(e.target.value)}
+                          placeholder="Комментарий"
+                          className="w-full h-9 px-3 text-sm text-slate-900 border border-slate-200 rounded-xl outline-none focus:border-[#1E3A8A] bg-white"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => void savePayEdit()}
+                            disabled={payEditSaving}
+                            className="flex-1 py-2 rounded-xl bg-[#1E3A8A] text-white text-xs font-black disabled:opacity-50"
+                          >
+                            {payEditSaving ? "Сохранение…" : "Сохранить"}
+                          </button>
+                          <button
+                            onClick={() => setPayEditId(null)}
+                            className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-black text-slate-500"
+                          >
+                            Отмена
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        key={p.id}
+                        className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50"
+                      >
+                        <span className="text-xs text-slate-400 w-5 text-center">
+                          {i + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-black text-slate-900 text-sm">
+                            {fmt(p.amountUzs)} сум
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {new Date(p.paidAt).toLocaleDateString("ru-RU")}
+                            {p.comment ? ` · ${p.comment}` : ""}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 uppercase">
+                          Оплачено
+                        </span>
+                        <button
+                          onClick={() => startPayEdit(p)}
+                          title="Изменить платёж"
+                          className="p-1.5 rounded-xl hover:bg-blue-50 text-slate-300 hover:text-[#1E3A8A] transition"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeletePayment(p.id)}
+                          className="p-1.5 rounded-xl hover:bg-red-50 text-slate-300 hover:text-red-500 transition"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ),
+                  )
                 )}
               </>
             )}
@@ -418,35 +600,89 @@ export default function ContractDetailPage() {
                   График не сформирован
                 </p>
               ) : (
-                contract.paymentSchedule.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`flex items-center gap-3 p-3 rounded-2xl text-sm ${item.isPaid ? "bg-emerald-50" : "bg-slate-50"}`}
-                  >
-                    {item.isPaid ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <>
+                  <p className="rounded-xl bg-blue-50 px-3 py-2 text-[11px] font-bold text-[#1E3A8A]">
+                    Нажмите ✎ у строки, чтобы вручную изменить сумму или дату
+                    (например, 11 месяцев по N и крупный платёж в конце).
+                  </p>
+                  {contract.paymentSchedule.map((item) =>
+                    schedEditId === item.id ? (
+                      <div
+                        key={item.id}
+                        className="space-y-2 rounded-2xl border-2 border-[#1E3A8A]/30 bg-blue-50/50 p-3"
+                      >
+                        <div className="flex gap-2">
+                          <input
+                            value={schedAmount}
+                            onChange={(e) =>
+                              setSchedAmount(formatMoneyInput(e.target.value))
+                            }
+                            inputMode="numeric"
+                            className="flex-1 h-9 px-3 text-sm font-bold text-slate-900 border border-slate-200 rounded-xl outline-none focus:border-[#1E3A8A] bg-white"
+                          />
+                          <input
+                            type="date"
+                            value={schedDate}
+                            onChange={(e) => setSchedDate(e.target.value)}
+                            className="h-9 px-2 text-sm text-slate-900 border border-slate-200 rounded-xl outline-none focus:border-[#1E3A8A] bg-white"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => void saveSchedEdit()}
+                            disabled={schedSaving}
+                            className="flex-1 py-2 rounded-xl bg-[#1E3A8A] text-white text-xs font-black disabled:opacity-50"
+                          >
+                            {schedSaving ? "Сохранение…" : "Сохранить"}
+                          </button>
+                          <button
+                            onClick={() => setSchedEditId(null)}
+                            className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-black text-slate-500"
+                          >
+                            Отмена
+                          </button>
+                        </div>
+                      </div>
                     ) : (
-                      <Clock className="h-4 w-4 text-slate-300 shrink-0" />
-                    )}
-                    <span className="text-slate-400 text-xs w-24 shrink-0">
-                      {new Date(item.dueDate).toLocaleDateString("ru-RU", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </span>
-                    <span
-                      className={`flex-1 font-black ${item.isPaid ? "text-emerald-600" : "text-slate-900"}`}
-                    >
-                      {fmt(item.amountUzs)} сум
-                    </span>
-                    {item.isPaid && item.paidAt && (
-                      <span className="text-xs text-slate-400">
-                        {new Date(item.paidAt).toLocaleDateString("ru-RU")}
-                      </span>
-                    )}
-                  </div>
-                ))
+                      <div
+                        key={item.id}
+                        className={`group flex items-center gap-3 p-3 rounded-2xl text-sm ${item.isPaid ? "bg-emerald-50" : "bg-slate-50"}`}
+                      >
+                        {item.isPaid ? (
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                        ) : (
+                          <Clock className="h-4 w-4 text-slate-300 shrink-0" />
+                        )}
+                        <span className="text-slate-400 text-xs w-24 shrink-0">
+                          {new Date(item.dueDate).toLocaleDateString("ru-RU", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </span>
+                        <span
+                          className={`flex-1 font-black ${item.isPaid ? "text-emerald-600" : "text-slate-900"}`}
+                        >
+                          {fmt(item.amountUzs)} сум
+                        </span>
+                        {item.isPaid && item.paidAt && (
+                          <span className="text-xs text-slate-400">
+                            {new Date(item.paidAt).toLocaleDateString("ru-RU")}
+                          </span>
+                        )}
+                        {!item.isPaid && (
+                          <button
+                            onClick={() => startSchedEdit(item)}
+                            title="Изменить сумму/дату"
+                            className="p-1.5 rounded-xl text-slate-300 opacity-0 transition group-hover:opacity-100 hover:bg-blue-100 hover:text-[#1E3A8A]"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    ),
+                  )}
+                </>
               ))}
           </div>
         </div>
@@ -592,6 +828,159 @@ export default function ContractDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Contract edit modal */}
+      {editOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-100 p-6">
+              <div>
+                <h2 className="text-xl font-black text-[#1E3A8A]">
+                  Изменить договор №{contract.number}
+                </h2>
+                <p className="mt-1 text-xs font-medium text-slate-500">
+                  Исправление ошибок при оформлении
+                </p>
+              </div>
+              <button
+                onClick={() => setEditOpen(false)}
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6">
+              {edError && (
+                <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-sm font-bold text-red-700">
+                  {edError}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <label className="col-span-2 space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Сумма договора (сум)
+                  </span>
+                  <input
+                    value={edTotal}
+                    onChange={(e) => setEdTotal(formatMoneyInput(e.target.value))}
+                    inputMode="numeric"
+                    className="w-full h-10 px-3 text-sm font-bold text-slate-900 border border-slate-200 rounded-xl outline-none focus:border-[#1E3A8A]"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Первый взнос (сум)
+                  </span>
+                  <input
+                    value={edFirst}
+                    onChange={(e) => setEdFirst(formatMoneyInput(e.target.value))}
+                    inputMode="numeric"
+                    className="w-full h-10 px-3 text-sm font-bold text-slate-900 border border-slate-200 rounded-xl outline-none focus:border-[#1E3A8A]"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Срок (месяцев)
+                  </span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={edTerm}
+                    onChange={(e) => setEdTerm(e.target.value)}
+                    className="w-full h-10 px-3 text-sm font-bold text-slate-900 border border-slate-200 rounded-xl outline-none focus:border-[#1E3A8A]"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Скидка (%)
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={edDiscount}
+                    onChange={(e) => setEdDiscount(e.target.value)}
+                    className="w-full h-10 px-3 text-sm font-bold text-slate-900 border border-slate-200 rounded-xl outline-none focus:border-[#1E3A8A]"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Способ оплаты
+                  </span>
+                  <select
+                    value={edMethod}
+                    onChange={(e) => setEdMethod(e.target.value as PaymentMethod)}
+                    className="w-full h-10 px-3 text-sm font-bold text-slate-900 border border-slate-200 rounded-xl outline-none focus:border-[#1E3A8A]"
+                  >
+                    {(Object.keys(METHOD_LABEL) as PaymentMethod[]).map((m) => (
+                      <option key={m} value={m}>
+                        {METHOD_LABEL[m]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="col-span-2 space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Статус
+                  </span>
+                  <select
+                    value={edStatus}
+                    onChange={(e) => setEdStatus(e.target.value)}
+                    className="w-full h-10 px-3 text-sm font-bold text-slate-900 border border-slate-200 rounded-xl outline-none focus:border-[#1E3A8A]"
+                  >
+                    {Object.keys(STATUS_LABEL).map((s) => (
+                      <option key={s} value={s}>
+                        {STATUS_LABEL[s]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="col-span-2 space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Примечание
+                  </span>
+                  <input
+                    value={edNotes}
+                    onChange={(e) => setEdNotes(e.target.value)}
+                    className="w-full h-10 px-3 text-sm text-slate-900 border border-slate-200 rounded-xl outline-none focus:border-[#1E3A8A]"
+                  />
+                </label>
+              </div>
+
+              <div className="rounded-xl bg-amber-50 border border-amber-100 px-3 py-2 text-[11px] font-bold leading-snug text-amber-800">
+                Изменение первого взноса автоматически поправит платёж
+                «Первоначальный взнос». График платежей при смене суммы/срока
+                не пересобирается — при необходимости отредактируйте строки
+                графика вручную на вкладке «График». Статус «Отменён»
+                освободит квартиру.
+              </div>
+            </div>
+
+            <div className="flex shrink-0 gap-3 border-t border-slate-100 p-6">
+              <button
+                onClick={() => setEditOpen(false)}
+                className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm font-black uppercase tracking-widest text-slate-600"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={() => void saveEdit()}
+                disabled={edSaving}
+                className="flex flex-[2] items-center justify-center gap-2 rounded-2xl bg-[#F97316] py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg disabled:opacity-50"
+              >
+                {edSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Pencil className="h-4 w-4" />
+                )}
+                Сохранить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

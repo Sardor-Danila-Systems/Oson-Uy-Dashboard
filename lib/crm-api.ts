@@ -177,6 +177,28 @@ export const contractsApi = {
       { method: "POST", body: JSON.stringify(body) },
     ),
 
+  updatePayment: (
+    projectId: number,
+    contractId: number,
+    paymentId: number,
+    body: { amountUzs?: number; paidAt?: string; comment?: string | null },
+  ) =>
+    apiFetch<Contract>(
+      `/projects/${projectId}/contracts/${contractId}/payments/${paymentId}`,
+      { method: "PATCH", body: JSON.stringify(body) },
+    ),
+
+  updateScheduleItem: (
+    projectId: number,
+    contractId: number,
+    itemId: number,
+    body: { amountUzs?: number; dueDate?: string },
+  ) =>
+    apiFetch<Contract>(
+      `/projects/${projectId}/contracts/${contractId}/schedule/${itemId}`,
+      { method: "PATCH", body: JSON.stringify(body) },
+    ),
+
   removePayment: (
     projectId: number,
     contractId: number,

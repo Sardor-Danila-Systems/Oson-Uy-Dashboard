@@ -382,129 +382,69 @@ export default function ProjectsPage() {
             <div className="relative h-64">
               <img src={project.imageUrl} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" alt={project.name} />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
-              <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-3 sm:bottom-6 sm:left-6 sm:right-6 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <span className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1 block">{project.location}</span>
-                  <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">{project.name}</h3>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {(() => {
-                    const ultraOk = hasUltimateWorkspaceAccess({
-                      plan: project.plan,
-                      status: project.subscriptionStatus,
-                    });
-                    const lockCls =
-                      "h-10 w-10 flex items-center justify-center rounded-xl bg-amber-500/90 backdrop-blur-md text-white ring-2 ring-amber-200/80 hover:bg-amber-500 transition-all";
-                    const openCls =
-                      "h-10 w-10 flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all";
-                    return (
-                      <>
-                        {ultraOk ? (
-                          <Link
-                            href={`/dashboard/projects/${project.id}/chessboard`}
-                            className={openCls}
-                            title={t("chessboard")}
-                            aria-label={t("chessboard")}
-                          >
-                            <LayoutGrid className="h-4 w-4" />
-                          </Link>
-                        ) : (
-                          <Link
-                            href="/dashboard/subscriptions"
-                            className={lockCls}
-                            title={t("ultraUpgradeHint")}
-                            aria-label={t("ultraOnlyChessboard")}
-                          >
-                            <Lock className="h-4 w-4" />
-                          </Link>
-                        )}
-                        {ultraOk ? (
-                          <Link
-                            href={`/dashboard/projects/${project.id}/customers`}
-                            className={openCls}
-                            title={t("customers")}
-                            aria-label={t("customers")}
-                          >
-                            <Users className="h-4 w-4" />
-                          </Link>
-                        ) : (
-                          <Link
-                            href="/dashboard/subscriptions"
-                            className={lockCls}
-                            title={t("ultraUpgradeHint")}
-                            aria-label={t("ultraOnlyCustomers")}
-                          >
-                            <Lock className="h-4 w-4" />
-                          </Link>
-                        )}
-                        {ultraOk ? (
-                          <Link
-                            href={`/dashboard/projects/${project.id}/contracts`}
-                            className={openCls}
-                            title="Договоры"
-                            aria-label="Договоры"
-                          >
-                            <FileText className="h-4 w-4" />
-                          </Link>
-                        ) : (
-                          <Link href="/dashboard/subscriptions" className={lockCls} title="Только ULTIMATE">
-                            <Lock className="h-4 w-4" />
-                          </Link>
-                        )}
-                        {ultraOk ? (
-                          <Link
-                            href={`/dashboard/projects/${project.id}/reports`}
-                            className={openCls}
-                            title="Отчёты"
-                            aria-label="Отчёты"
-                          >
-                            <BarChart2 className="h-4 w-4" />
-                          </Link>
-                        ) : (
-                          <Link href="/dashboard/subscriptions" className={lockCls} title="Только ULTIMATE">
-                            <Lock className="h-4 w-4" />
-                          </Link>
-                        )}
-                        {ultraOk ? (
-                          <Link
-                            href={`/dashboard/projects/${project.id}/scene3d`}
-                            className={openCls}
-                            title="3D-модель"
-                            aria-label="3D-модель"
-                          >
-                            <Box className="h-4 w-4" />
-                          </Link>
-                        ) : (
-                          <Link href="/dashboard/subscriptions" className={lockCls} title="3D — только Ultra">
-                            <Lock className="h-4 w-4" />
-                          </Link>
-                        )}
-                      </>
-                    );
-                  })()}
-                  <Link
-                    href={`/dashboard/progress?projectId=${project.id}`}
-                    className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all"
-                    title={t("progress")}
-                    aria-label={t("progress")}
-                  >
-                    <ListChecks className="h-4 w-4" />
-                  </Link>
-                  <button 
-                    onClick={() => onEdit(project)}
-                    className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-md text-white hover:bg-white hover:text-slate-900 transition-all"
-                    type="button"
-                    aria-label={t("edit")}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </button>
-                </div>
+              <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6">
+                <span className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1 block">{project.location}</span>
+                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">{project.name}</h3>
               </div>
               {project.subscriptionStatus === "ACTIVE" && (
                 <div className="absolute top-6 right-6 bg-emerald-500 text-white text-[10px] font-black uppercase px-3 py-1.5 rounded-full shadow-lg">
                   Active {project.plan}
                 </div>
               )}
+            </div>
+
+            {/* Action bar — labeled buttons, no more icon pile on the photo */}
+            <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-3 sm:px-6">
+              {(() => {
+                const ultraOk = hasUltimateWorkspaceAccess({
+                  plan: project.plan,
+                  status: project.subscriptionStatus,
+                });
+                const btn =
+                  "inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-black text-slate-700 transition hover:border-[#1E3A8A] hover:text-[#1E3A8A]";
+                const lockBtn =
+                  "inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-black text-amber-800 transition hover:bg-amber-100";
+                const ultraActions = [
+                  { href: `/dashboard/projects/${project.id}/chessboard`, icon: LayoutGrid, label: t("chessboard") },
+                  { href: `/dashboard/projects/${project.id}/customers`, icon: Users, label: t("customers") },
+                  { href: `/dashboard/projects/${project.id}/contracts`, icon: FileText, label: "Договоры" },
+                  { href: `/dashboard/projects/${project.id}/reports`, icon: BarChart2, label: "Отчёты" },
+                  { href: `/dashboard/projects/${project.id}/scene3d`, icon: Box, label: "3D" },
+                ];
+                return (
+                  <div className="flex flex-wrap gap-2">
+                    {ultraActions.map((a) =>
+                      ultraOk ? (
+                        <Link key={a.label} href={a.href} className={btn}>
+                          <a.icon className="h-3.5 w-3.5" />
+                          {a.label}
+                        </Link>
+                      ) : (
+                        <Link
+                          key={a.label}
+                          href="/dashboard/subscriptions"
+                          className={lockBtn}
+                          title={t("ultraUpgradeHint")}
+                        >
+                          <Lock className="h-3.5 w-3.5" />
+                          {a.label}
+                        </Link>
+                      ),
+                    )}
+                    <Link
+                      href={`/dashboard/progress?projectId=${project.id}`}
+                      className={btn}
+                    >
+                      <ListChecks className="h-3.5 w-3.5" />
+                      {t("progress")}
+                    </Link>
+                    <button type="button" onClick={() => onEdit(project)} className={btn}>
+                      <Edit2 className="h-3.5 w-3.5" />
+                      {t("edit")}
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="p-8 space-y-6">

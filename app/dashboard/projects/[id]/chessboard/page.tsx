@@ -70,6 +70,14 @@ type ApartmentDetail = Apartment & {
     status: string;
     createdAt: string;
   }>;
+  contracts?: Array<{
+    id: number;
+    number: string;
+    status: string;
+    contractDate: string;
+    totalPriceUzs: number;
+    customer: { id: number; name: string; phone: string } | null;
+  }>;
 };
 
 type BulkSectionForm = {
@@ -1441,6 +1449,29 @@ export default function ChessboardPage() {
                             Оформить договор
                           </button>
                         )}
+
+                        {/* Existing contract(s) on this apartment → jump to contract */}
+                        {(selected.contracts ?? [])
+                          .filter((ct) => ct.status !== "CANCELED")
+                          .map((ct) => (
+                            <Link
+                              key={ct.id}
+                              href={`/dashboard/projects/${projectId}/contracts/${ct.id}`}
+                              className="flex w-full items-center justify-between gap-2 rounded-2xl border-2 border-[#1E3A8A]/20 bg-blue-50 px-4 py-3 transition hover:border-[#1E3A8A] hover:bg-blue-100"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[#1E3A8A]/70">
+                                  Договор №{ct.number}
+                                </p>
+                                <p className="truncate text-sm font-black text-[#1E3A8A]">
+                                  {ct.customer?.name ?? "Покупатель"}
+                                </p>
+                              </div>
+                              <span className="flex shrink-0 items-center gap-1 text-[10px] font-black uppercase tracking-widest text-[#F97316]">
+                                Перейти <ExternalLink className="h-3.5 w-3.5" />
+                              </span>
+                            </Link>
+                          ))}
                         {selected.priceUzs != null && selected.priceUzs > 0 ? (
                           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
                             <p className="text-[10px] font-black uppercase tracking-widest text-emerald-800">
