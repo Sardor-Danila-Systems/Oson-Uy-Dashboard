@@ -69,7 +69,7 @@ export interface ContractPayment {
   amountUzs: string;
   paidAt: string;
   type: CustomerPaymentType;
-  method?: "CASH" | "CARD" | "P2P" | "BANK";
+  method?: "CASH" | "P2P" | "BANK";
   comment: string | null;
   receiptUrl: string | null;
   createdAt: string;
@@ -135,6 +135,8 @@ export interface ProjectStats {
     count: number;
     totalUzs: string;
   }[];
+  monthlySales?: { month: string; count: number; sumUzs: string }[];
+  paymentMethods?: Record<string, string>;
 }
 
 export interface ForecastItem {
@@ -208,6 +210,16 @@ export const contractsApi = {
     apiFetch<Contract>(
       `/projects/${projectId}/contracts/${contractId}/payments/${paymentId}`,
       { method: "DELETE" },
+    ),
+
+  cancelWithRefund: (
+    projectId: number,
+    contractId: number,
+    body: { refundUzs?: number; method?: "CASH" | "P2P" | "BANK"; reason?: string },
+  ) =>
+    apiFetch<Contract>(
+      `/projects/${projectId}/contracts/${contractId}/cancel`,
+      { method: "POST", body: JSON.stringify(body) },
     ),
 
   stats: (projectId: number) =>
@@ -470,7 +482,7 @@ export const scenes3dApi = {
 
 // ── Finance (кассы, расходы, должники, аудит) ──────────────────────────────────
 
-export type PayMethod = "CASH" | "CARD" | "P2P" | "BANK";
+export type PayMethod = "CASH" | "P2P" | "BANK";
 
 export interface KassaSummary {
   kassa: Record<PayMethod, { income: string; expense: string; balance: string }>;

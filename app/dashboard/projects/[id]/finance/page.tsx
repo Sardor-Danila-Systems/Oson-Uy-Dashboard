@@ -31,19 +31,16 @@ import { formatMoneyInput, parseMoneyInput } from "@/lib/currency";
 
 const METHOD_LABEL: Record<PayMethod, string> = {
   CASH: "Наличные",
-  CARD: "Карта",
-  P2P: "P2P",
+  P2P: "Карта / P2P",
   BANK: "Банк",
 };
 const METHOD_STYLE: Record<PayMethod, string> = {
   CASH: "bg-emerald-600",
-  CARD: "bg-teal-600",
   P2P: "bg-blue-600",
   BANK: "bg-orange-600",
 };
 const KASSA_COLOR: Record<PayMethod, string> = {
   CASH: "text-emerald-700",
-  CARD: "text-teal-700",
   P2P: "text-blue-700",
   BANK: "text-orange-700",
 };
@@ -392,13 +389,22 @@ export default function FinancePage() {
                         "—"
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right font-black text-emerald-600">
-                      +{fmt(p.amountUzs)}
+                    <td
+                      className={`px-4 py-3 text-right font-black ${Number(p.amountUzs) < 0 ? "text-red-600" : "text-emerald-600"}`}
+                    >
+                      {Number(p.amountUzs) < 0 ? "−" : "+"}
+                      {fmt(Math.abs(Number(p.amountUzs)))}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`rounded-lg px-2 py-1 text-[10px] font-black text-white ${METHOD_STYLE[p.method] ?? "bg-slate-400"}`}>
-                        {METHOD_LABEL[p.method] ?? p.method}
-                      </span>
+                      {Number(p.amountUzs) < 0 ? (
+                        <span className="rounded-lg bg-red-500 px-2 py-1 text-[10px] font-black text-white">
+                          Возврат · {METHOD_LABEL[p.method] ?? p.method}
+                        </span>
+                      ) : (
+                        <span className={`rounded-lg px-2 py-1 text-[10px] font-black text-white ${METHOD_STYLE[p.method] ?? "bg-slate-400"}`}>
+                          {METHOD_LABEL[p.method] ?? p.method}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-500">{p.comment ?? ""}</td>
                   </tr>

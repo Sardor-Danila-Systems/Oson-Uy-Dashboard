@@ -50,6 +50,7 @@ export default function TeamPage() {
   const [invName, setInvName] = useState("");
   const [invEmail, setInvEmail] = useState("");
   const [invRole, setInvRole] = useState<MemberRole>("SALES");
+  const [invPassword, setInvPassword] = useState("");
   const [inviting, setInviting] = useState(false);
   const [invResult, setInvResult] = useState<{ email: string; pass: string } | null>(null);
 
@@ -89,6 +90,10 @@ export default function TeamPage() {
   const invite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!invEmail.trim()) return;
+    if (invPassword && invPassword.length < 6) {
+      flash("Пароль должен быть не короче 6 символов");
+      return;
+    }
     setInviting(true);
     setInvResult(null);
     try {
@@ -96,11 +101,14 @@ export default function TeamPage() {
         name: invName.trim() || undefined,
         email: invEmail.trim(),
         role: invRole,
+        password: invPassword.trim() || undefined,
       });
+      const usedPass = invPassword.trim() || res.tempPassword;
       setInvName("");
       setInvEmail("");
-      if (res.tempPassword) {
-        setInvResult({ email: res.developer.email ?? invEmail, pass: res.tempPassword });
+      setInvPassword("");
+      if (usedPass) {
+        setInvResult({ email: res.developer.email ?? invEmail, pass: usedPass });
       } else {
         flash("Существующий сотрудник добавлен в проект");
       }
@@ -192,7 +200,7 @@ export default function TeamPage() {
         <p className="mb-4 flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#1E3A8A]">
           <UserPlus className="h-4 w-4" /> Пригласить сотрудника
         </p>
-        <form onSubmit={invite} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <form onSubmit={invite} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <div>
             <label className={labelCls}>Имя</label>
             <input className={inputCls} value={invName} onChange={(e) => setInvName(e.target.value)} placeholder="Эзоза Рахимова" />
@@ -200,6 +208,17 @@ export default function TeamPage() {
           <div>
             <label className={labelCls}>Email</label>
             <input className={inputCls} type="email" value={invEmail} onChange={(e) => setInvEmail(e.target.value)} placeholder="ezoza@company.uz" required />
+          </div>
+          <div>
+            <label className={labelCls}>Пароль</label>
+            <input
+              className={inputCls}
+              type="text"
+              value={invPassword}
+              onChange={(e) => setInvPassword(e.target.value)}
+              placeholder="задайте сами"
+              autoComplete="new-password"
+            />
           </div>
           <div>
             <label className={labelCls}>Роль</label>
@@ -221,6 +240,10 @@ export default function TeamPage() {
             </button>
           </div>
         </form>
+        <p className="mt-3 text-xs font-medium text-slate-400">
+          Если пароль оставить пустым — система создаст временный и покажет его
+          после приглашения. Сотрудник входит по email и паролю на странице входа.
+        </p>
 
         {invResult && (
           <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">

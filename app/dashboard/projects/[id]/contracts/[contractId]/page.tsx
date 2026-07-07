@@ -14,6 +14,7 @@ import {
   Loader2,
   Pencil,
   X,
+  XCircle,
 } from "lucide-react";
 import {
   contractsApi,
@@ -66,7 +67,7 @@ export default function ContractDetailPage() {
     new Date().toISOString().split("T")[0],
   );
   const [payComment, setPayComment] = useState("");
-  const [payMethod, setPayMethod] = useState<"CASH" | "CARD" | "P2P" | "BANK">("CASH");
+  const [payMethod, setPayMethod] = useState<"CASH" | "P2P" | "BANK">("CASH");
   const [payLoading, setPayLoading] = useState(false);
   const [payDayEdit, setPayDayEdit] = useState("");
   const [savingDay, setSavingDay] = useState(false);
@@ -93,6 +94,45 @@ export default function ContractDetailPage() {
   const [payEditDate, setPayEditDate] = useState("");
   const [payEditComment, setPayEditComment] = useState("");
   const [payEditSaving, setPayEditSaving] = useState(false);
+
+  // ── Расторжение с возвратом ────────────────────────────────────────────────
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelRefund, setCancelRefund] = useState("");
+  const [cancelMethod, setCancelMethod] = useState<"CASH" | "P2P" | "BANK">("CASH");
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelBusy, setCancelBusy] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+
+  const openCancel = () => {
+    if (!contract) return;
+    // по умолчанию возвращаем всё оплаченное
+    setCancelRefund(formatMoneyInput(String(contract.paidUzs)));
+    setCancelMethod("CASH");
+    setCancelReason("");
+    setCancelError(null);
+    setCancelOpen(true);
+  };
+
+  const doCancel = async () => {
+    if (!contract) return;
+    setCancelBusy(true);
+    setCancelError(null);
+    try {
+      const updated = await contractsApi.cancelWithRefund(projectId, contractId, {
+        refundUzs: parseMoneyInput(cancelRefund),
+        method: cancelMethod,
+        reason: cancelReason.trim() || undefined,
+      });
+      setContract(updated);
+      setCancelOpen(false);
+    } catch (err) {
+      setCancelError(
+        err instanceof Error ? err.message : "Не удалось расторгнуть договор",
+      );
+    } finally {
+      setCancelBusy(false);
+    }
+  };
 
   const openEdit = () => {
     if (!contract) return;
@@ -315,6 +355,15 @@ export default function ContractDetailPage() {
             <Pencil className="h-4 w-4" />
             Изменить
           </button>
+          {contract.status !== "CANCELED" && (
+            <button
+              onClick={openCancel}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-red-200 text-sm font-bold text-red-600 hover:bg-red-50 transition"
+            >
+              <XCircle className="h-4 w-4" />
+              Расторгнуть
+            </button>
+          )}
           <button
             onClick={() => setDownloadOpen((v) => !v)}
             disabled={downloadingType != null}
@@ -424,7 +473,7 @@ export default function ContractDetailPage() {
         </div>
         <div className="h-3 rounded-full bg-slate-100 overflow-hidden">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#F97316] transition-all duration-700"
+            className="h-full rounded-full bg-[#1E3A8A] transition-all duration-700"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -492,14 +541,13 @@ export default function ContractDetailPage() {
                       <select
                         value={payMethod}
                         onChange={(e) =>
-                          setPayMethod(e.target.value as "CASH" | "CARD" | "P2P" | "BANK")
+                          setPayMethod(e.target.value as "CASH" | "P2P" | "BANK")
                         }
                         className="h-9 px-2 text-sm font-bold text-slate-900 border border-slate-200 rounded-xl outline-none focus:border-[#1E3A8A]"
                         title="Касса (способ оплаты)"
                       >
                         <option value="CASH">Наличные</option>
-                        <option value="CARD">Карта</option>
-                        <option value="P2P">P2P</option>
+                        <option value="P2P">Карта / P2P</option>
                         <option value="BANK">Банк</option>
                       </select>
                       <input
@@ -594,18 +642,14 @@ export default function ContractDetailPage() {
                               ? "bg-orange-500"
                               : p.method === "P2P"
                                 ? "bg-blue-600"
-                                : p.method === "CARD"
-                                  ? "bg-teal-600"
-                                  : "bg-emerald-600"
+                                : "bg-emerald-600"
                           }`}
                         >
                           {p.method === "BANK"
                             ? "Банк"
                             : p.method === "P2P"
-                              ? "P2P"
-                              : p.method === "CARD"
-                                ? "Карта"
-                                : "Наличные"}
+                              ? "Карта / P2P"
+                              : "Наличные"}
                         </span>
                         <button
                           onClick={() => startPayEdit(p)}
@@ -1009,6 +1053,109 @@ export default function ContractDetailPage() {
                   <Pencil className="h-4 w-4" />
                 )}
                 Сохранить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel with refund modal */}
+      {cancelOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+            <div className="flex items-start justify-between border-b border-slate-100 p-6">
+              <div>
+                <h2 className="text-xl font-black text-red-600">
+                  Расторжение договора №{contract.number}
+                </h2>
+                <p className="mt-1 text-xs font-medium text-slate-500">
+                  Отмена рассрочки/покупки с возвратом средств
+                </p>
+              </div>
+              <button
+                onClick={() => setCancelOpen(false)}
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 p-6">
+              {cancelError && (
+                <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-sm font-bold text-red-700">
+                  {cancelError}
+                </div>
+              )}
+              <div className="rounded-xl bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600">
+                Оплачено по договору:{" "}
+                <b className="text-slate-900">{fmt(contract.paidUzs)} сум</b>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Сумма возврата
+                  </span>
+                  <input
+                    value={cancelRefund}
+                    onChange={(e) => setCancelRefund(formatMoneyInput(e.target.value))}
+                    inputMode="numeric"
+                    className="w-full h-10 px-3 text-sm font-bold text-slate-900 border border-slate-200 rounded-xl outline-none focus:border-red-400"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Из кассы
+                  </span>
+                  <select
+                    value={cancelMethod}
+                    onChange={(e) =>
+                      setCancelMethod(e.target.value as "CASH" | "P2P" | "BANK")
+                    }
+                    className="w-full h-10 px-3 text-sm font-bold text-slate-900 border border-slate-200 rounded-xl outline-none focus:border-red-400"
+                  >
+                    <option value="CASH">Наличные</option>
+                    <option value="P2P">Карта / P2P</option>
+                    <option value="BANK">Банк</option>
+                  </select>
+                </label>
+                <label className="col-span-2 space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Причина (необязательно)
+                  </span>
+                  <input
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="Отказ покупателя, перепродажа…"
+                    className="w-full h-10 px-3 text-sm text-slate-900 border border-slate-200 rounded-xl outline-none focus:border-red-400"
+                  />
+                </label>
+              </div>
+              <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-[11px] font-bold leading-snug text-amber-800">
+                Договор станет «Отменён», квартира{" "}
+                <b>{contract.apartment?.number ?? ""}</b> освободится, а возврат
+                уменьшит баланс кассы и прибыль. Оставьте сумму 0, чтобы
+                расторгнуть без возврата.
+              </div>
+            </div>
+
+            <div className="flex gap-3 border-t border-slate-100 p-6">
+              <button
+                onClick={() => setCancelOpen(false)}
+                className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm font-black uppercase tracking-widest text-slate-600"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={() => void doCancel()}
+                disabled={cancelBusy}
+                className="flex flex-[2] items-center justify-center gap-2 rounded-2xl bg-red-600 py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                {cancelBusy ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <XCircle className="h-4 w-4" />
+                )}
+                Расторгнуть
               </button>
             </div>
           </div>

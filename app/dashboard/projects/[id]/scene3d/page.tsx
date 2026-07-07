@@ -218,7 +218,7 @@ export default function Scene3DPage() {
             href={`${SITE_URL}/3d/${projectId}`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#1E3A8A] to-[#F97316] px-4 py-2.5 text-sm font-black text-white shadow-lg hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-2xl bg-[#1E3A8A] px-4 py-2.5 text-sm font-black text-white shadow-lg hover:bg-[#172554]"
           >
             <ExternalLink className="h-4 w-4" /> Открыть 3D
           </a>
