@@ -22,6 +22,7 @@ import {
   PermKey,
   PermMap,
 } from "@/lib/crm-api";
+import { ApiAuthError } from "@/lib/api";
 
 const ROLE_STYLE: Record<MemberRole, string> = {
   OWNER: "bg-[#1E3A8A] text-white",
@@ -37,6 +38,7 @@ export default function TeamPage() {
 
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
   const [me, setMe] = useState<MemberMe | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [catalog, setCatalog] = useState<MembersCatalog | null>(null);
@@ -70,8 +72,11 @@ export default function TeamPage() {
       ]);
       setMembers(list);
       setCatalog(cat);
-    } catch {
-      setDenied(true);
+    } catch (err) {
+      // 401/403 → реального доступа нет; иначе (404/500/сеть) → раздел ещё
+      // не развёрнут на сервере — не вводим в заблуждение «нет прав».
+      if (err instanceof ApiAuthError) setDenied(true);
+      else setUnavailable(true);
     } finally {
       setLoading(false);
     }
@@ -133,6 +138,23 @@ export default function TeamPage() {
     return (
       <div className="flex h-[40vh] items-center justify-center">
         <Loader2 className="h-9 w-9 animate-spin text-[#1E3A8A]" />
+      </div>
+    );
+  }
+
+  if (unavailable) {
+    return (
+      <div className="mx-auto flex max-w-md flex-col items-center gap-5 py-16 text-center">
+        <Shield className="h-11 w-11 text-amber-400" />
+        <h2 className="text-xl font-black text-slate-800">Раздел ещё не развёрнут</h2>
+        <p className="text-sm font-medium text-slate-500">
+          Модуль «Команда и роли» не отвечает на сервере. Скорее всего бэкенд с
+          ролями ещё не задеплоен или не перезапущен. Обновите серверную часть —
+          и раздел заработает.
+        </p>
+        <Link href={`/dashboard/projects/${projectId}`} className="text-sm font-bold text-[#1E3A8A] hover:underline">
+          ← В рабочую область
+        </Link>
       </div>
     );
   }

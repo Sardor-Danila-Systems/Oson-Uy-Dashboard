@@ -18,6 +18,9 @@ import {
   Pencil,
   Phone,
   X,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 type Project = {
@@ -35,6 +38,8 @@ type TelegramLinkResponse = {
 };
 
 type CompanyForm = {
+  name: string;
+  email: string;
   phone: string;
   legalAddress: string;
   officeAddress: string;
@@ -44,6 +49,8 @@ type CompanyForm = {
 };
 
 const emptyForm: CompanyForm = {
+  name: "",
+  email: "",
   phone: "",
   legalAddress: "",
   officeAddress: "",
@@ -78,6 +85,7 @@ export default function ProfilePage() {
       apiFetch<{
         id: number;
         name: string;
+        email?: string | null;
         telegramLinked?: boolean;
         phone?: string | null;
         legalAddress?: string | null;
@@ -92,6 +100,8 @@ export default function ProfilePage() {
     setName(developer.name);
     setTelegramLinked(Boolean(developer.telegramLinked));
     const next: CompanyForm = {
+      name: developer.name ?? "",
+      email: developer.email ?? "",
       phone: formatPhoneInput(developer.phone ?? ""),
       legalAddress: developer.legalAddress ?? "",
       officeAddress: developer.officeAddress ?? "",
@@ -170,6 +180,10 @@ export default function ProfilePage() {
 
   const saveCompany = async () => {
     if (developerId == null) return;
+    if (!form.name.trim()) {
+      setCompanyError(t("nameRequired"));
+      return;
+    }
     setCompanySaving(true);
     setCompanyError(null);
     setCompanySaved(false);
@@ -177,14 +191,18 @@ export default function ProfilePage() {
       await apiFetch(`/developers/${developerId}`, {
         method: "PATCH",
         body: JSON.stringify({
-          phone: form.phone.trim() || undefined,
-          legalAddress: form.legalAddress.trim() || undefined,
-          officeAddress: form.officeAddress.trim() || undefined,
-          website: form.website.trim() || undefined,
-          description: form.description.trim() || undefined,
-          logoUrl: form.logoUrl.trim() || undefined,
+          name: form.name.trim(),
+          // email — логин, очищать нельзя; остальные поля можно стереть (пустая строка)
+          email: form.email.trim() || undefined,
+          phone: form.phone.trim(),
+          legalAddress: form.legalAddress.trim(),
+          officeAddress: form.officeAddress.trim(),
+          website: form.website.trim(),
+          description: form.description.trim(),
+          logoUrl: form.logoUrl.trim(),
         }),
       });
+      setName(form.name.trim());
       setSaved(form);
       setEditing(false);
       setCompanySaved(true);
@@ -193,6 +211,44 @@ export default function ProfilePage() {
       setCompanyError(e instanceof Error ? e.message : t("companySaveError"));
     } finally {
       setCompanySaving(false);
+    }
+  };
+
+  // ── Смена пароля ────────────────────────────────────────────────────────────
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [pwSaved, setPwSaved] = useState(false);
+
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwError(null);
+    setPwSaved(false);
+    if (pwNew.length < 6) {
+      setPwError(t("passwordTooShort"));
+      return;
+    }
+    if (pwNew !== pwConfirm) {
+      setPwError(t("passwordMismatch"));
+      return;
+    }
+    setPwSaving(true);
+    try {
+      await apiFetch("/developers/me/change-password", {
+        method: "POST",
+        body: JSON.stringify({ currentPassword: pwCurrent, newPassword: pwNew }),
+      });
+      setPwCurrent("");
+      setPwNew("");
+      setPwConfirm("");
+      setPwSaved(true);
+      window.setTimeout(() => setPwSaved(false), 3000);
+    } catch (err) {
+      setPwError(err instanceof Error ? err.message : t("passwordChangeError"));
+    } finally {
+      setPwSaving(false);
     }
   };
 
@@ -349,6 +405,35 @@ export default function ProfilePage() {
                 <div className="mt-6 border-t border-slate-100 pt-6">
                   {editing ? (
                     <div className="grid gap-4 md:grid-cols-2">
+                      <label className="block space-y-1.5 md:col-span-2">
+                        <span className="text-xs font-semibold text-slate-500">
+                          {t("companyName")}
+                        </span>
+                        <input
+                          value={form.name}
+                          onChange={(e) =>
+                            setForm((p) => ({ ...p, name: e.target.value }))
+                          }
+                          placeholder="ООО «Grand Build»"
+                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#1E3A8A]"
+                        />
+                      </label>
+                      <label className="block space-y-1.5">
+                        <span className="text-xs font-semibold text-slate-500">
+                          {t("companyEmail")}
+                        </span>
+                        <input
+                          type="email"
+                          inputMode="email"
+                          autoComplete="email"
+                          placeholder="company@mail.uz"
+                          value={form.email}
+                          onChange={(e) =>
+                            setForm((p) => ({ ...p, email: e.target.value }))
+                          }
+                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#1E3A8A]"
+                        />
+                      </label>
                       <label className="block space-y-1.5">
                         <span className="text-xs font-semibold text-slate-500">
                           {t("companyPhone")}
@@ -509,6 +594,69 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
+
+            {/* Смена пароля */}
+            <form
+              onSubmit={changePassword}
+              className="rounded-3xl border border-blue-100 bg-white p-6 shadow-sm"
+            >
+              <div className="flex items-center gap-2">
+                <div className="rounded-xl bg-blue-50 p-2 text-[#1E3A8A]">
+                  <KeyRound className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[#1E3A8A]">
+                    {t("changePassword")}
+                  </h3>
+                  <p className="text-xs text-slate-400">{t("changePasswordHint")}</p>
+                </div>
+              </div>
+
+              {pwError && (
+                <p className="mt-4 rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-600">
+                  {pwError}
+                </p>
+              )}
+              {pwSaved && (
+                <p className="mt-4 flex items-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
+                  <Check className="h-4 w-4" /> {t("passwordChanged")}
+                </p>
+              )}
+
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                <PasswordField
+                  label={t("currentPassword")}
+                  value={pwCurrent}
+                  onChange={setPwCurrent}
+                  autoComplete="current-password"
+                />
+                <PasswordField
+                  label={t("newPassword")}
+                  value={pwNew}
+                  onChange={setPwNew}
+                  autoComplete="new-password"
+                />
+                <PasswordField
+                  label={t("confirmPassword")}
+                  value={pwConfirm}
+                  onChange={setPwConfirm}
+                  autoComplete="new-password"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={pwSaving || !pwCurrent || !pwNew || !pwConfirm}
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#1E3A8A] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-blue-900 disabled:opacity-50"
+              >
+                {pwSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <KeyRound className="h-4 w-4" />
+                )}
+                {t("changePasswordBtn")}
+              </button>
+            </form>
           </div>
 
           {/* Sidebar */}
@@ -619,5 +767,41 @@ export default function ProfilePage() {
         </div>
       )}
     </section>
+  );
+}
+
+function PasswordField({
+  label,
+  value,
+  onChange,
+  autoComplete,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  autoComplete: string;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <label className="block space-y-1.5">
+      <span className="text-xs font-semibold text-slate-500">{label}</span>
+      <div className="relative">
+        <input
+          type={show ? "text" : "password"}
+          value={value}
+          autoComplete={autoComplete}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full rounded-xl border border-slate-200 px-3 py-2 pr-10 text-sm text-slate-900 outline-none focus:border-[#1E3A8A]"
+        />
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => setShow((v) => !v)}
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:text-slate-700"
+        >
+          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </label>
   );
 }

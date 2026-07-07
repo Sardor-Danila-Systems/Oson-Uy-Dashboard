@@ -295,52 +295,51 @@
       "finish": "Ishni boshlash",
       "steps": [
         {
-          "title": "Quruvchi kabineti menyusi",
-          "description": "Chapda: umumiy ko'rinish, sayt arizalari, loyihalar, qurilish jarayoni, tariflar va profil. Telefonda xuddi shu menyu tugma orqali ochiladi.",
+          "title": "Menyu va ish maydoni",
+          "description": "Chapda — umumiy ko'rinish, saytdan arizalar, loyihalar, qurilish jarayoni, tariflar va profil. Har bir loyiha alohida ish maydonida, vkladkalar bilan ochiladi.",
           "bullets": [
-            "«Loyihalar» — TY kartochkasi va tahrirlash formasi: xaridor Oson Uy katalogida shuni ko'radi.",
-            "«Arizalar» — kiruvchi lidlar uchun kanban va jadval.",
-            "«Jarayon» — buyer kabinetidagi qurilish bosqichlari."
+            "Loyiha ustiga bosing → «Ish maydonini ochish»",
+            "Vkladkalar: Shaxmatka, Mijozlar, Shartnomalar, Moliya, 3D, Hisobotlar, Jamoa"
           ]
         },
         {
-          "title": "Loyihalar va katalog",
-          "description": "Loyiha yarating yoki tahrirlang: suratlar, video, xarita, xususiyatlar, m² narxlari va rejalar bilan qavatlar — hammasi ochiq TY sahifasiga chiqadi.",
+          "title": "Loyihalar, katalog va 3D",
+          "description": "Loyiha yarating: surat, video, xarita, xususiyatlar, qavatlar bo'yicha planirovkalar. JK ning 3D-modelini yuklang — xaridorlar uni to'g'ridan-to'g'ri saytda ko'radi.",
           "bullets": [
-            "Sayt bilan bir xil backend — ma'lumotlar sinxron.",
-            "Dashboard kartochkasidan tezkor harakatlar (jarayon; shaxmatka va xaridorlar faqat Ultra tarifida — keyingi qadamda)."
+            "Start'da 3 tagacha surat, Pro'da 7, Ultra'da cheksiz",
+            "3D-model va katalog tepasi — Ultra tarifida"
           ]
         },
         {
-          "title": "Arizalar va sharh",
-          "description": "Sayt arizalari «Arizalar»da: loyiha bo'yicha filtr, qidiruv, holatlar bo'yicha kanban.",
+          "title": "Saytdan arizalar",
+          "description": "Xaridorlarning barcha murojaatlari «Arizalar» bo'limiga tushadi: loyiha bo'yicha filtr, qidiruv, statuslar. Birorta mijoz yo'qolmaydi.",
           "bullets": [
-            "«Bog'landi»dan keyin sharh havolasini yaratish va mijozga yuborish mumkin.",
-            "Qayta aloqa uchun ism va telefondan foydalaning."
+            "Yangi arizalar haqida Telegram'ga xabar",
+            "Arizadan — rasmiylashtirishga tez o'tish"
           ]
         },
         {
-          "title": "Qurilish jarayoni",
-          "description": "«Jarayon»: bosqichlar ro'yxati, suratlar, bajarilgan belgisi. Foiz va ro'yxat xaridorning saytdagi kabinetida ko'rinadi.",
+          "title": "Sotuv: shaxmatka, mijozlar, shartnomalar",
+          "description": "Kvartiralar shaxmatkasi statuslar bilan (bo'sh / band / sotilgan), xaridorlar CRM va to'lov grafigi bilan shartnomalar — qo'lda tahrirlanadi.",
           "bullets": [
-            "URL parametri orqali loyihaga bog'lash mumkin.",
-            "To'lovlar va «shu oy to'lovi» Ultra dagi xaridorlar CRM orqali beriladi."
+            "Sotilgan kvartiradan — shartnomaga o'tish",
+            "Moslashuvchan grafik: masalan, 11 oy N dan va oxirida katta to'lov"
           ]
         },
         {
-          "title": "Tariflar va Ultra",
-          "description": "«Tariflar»da loyiha uchun reja tanlaysiz va to'lov arizasini rasmiylashtirasiz: hisob va rekvizitlar chiqadi; menejer tasdiqlagach obuna faollashadi.",
+          "title": "Moliya: kassalar, xarajatlar, qarzlar",
+          "description": "Kassalar (naqd, karta, P2P, bank) balanslar va o'zaro o'tkazmalar bilan, xarajatlar hisobi, muddati bo'yicha qarzdorlik va foyda = daromad − xarajat. Ilgari Excel'da yuritilgan hamma narsa.",
           "bullets": [
-            "Kvartiralar shaxmatkasi va xaridorlar CRM (saytdagi kabinet uchun kodlar) faqat Ultra (ULTIMATE) rejada, TRIAL yoki ACTIVE holatda.",
-            "Promokodlar — shu sahifada; berilgan bo'lsa muddatni uzaytiradi yoki bepul davrni yoqadi."
+            "Har bir to'lov o'z kassasiga tushadi",
+            "O'zgarishlar tarixi: kim, nima va qachon o'zgartirgani"
           ]
         },
         {
-          "title": "Hisob va summalar",
-          "description": "Hozirgi sozlamalarda tariflar 0 UZS ko'rinishi mumkin: bu to'lov arizasi va faollashtirishni interfeysda qat'iy summasiz rasmiylashtirish. Hisobda baribir rekvizitlar va izoh bo'ladi.",
+          "title": "Jamoa, rollar va tariflar",
+          "description": "Xodimlarni taklif qiling va rollar bering: Administrator, Menejer, Sotuv bo'limi — huquqlarni aniq sozlash bilan. «Tariflar»da rejani tanlaysiz: kengaytirilgan modullar Ultra'da ishlaydi.",
           "bullets": [
-            "Hisoblar tarixi tizimda saqlanadi; tarifni tekshirish uchun loyihalar ro'yxatidagi rejani ko'ring.",
-            "Ultra kirish bo'yicha savollar — «Tariflar» yoki qo'llab-quvvatlash orqali."
+            "Sotuv bo'limi faqat kerakli narsani ko'radi — moliya yashirin",
+            "Huquqlarni har bir xodim uchun tugmachalar bilan sozlash mumkin"
           ]
         }
       ]
@@ -562,6 +561,19 @@
       "telegramError": "Havola chiqmadi. Serverda TELEGRAM_BOT_USERNAME sozlashi kerak.",
       "companyTitle": "Katalog ma'lumotlari",
       "companySubtitle": "Telefon, manzillar va sayt JK sahifasida ko'rinadi.",
+      "companyName": "Kompaniya nomi",
+      "companyEmail": "Kirish uchun email",
+      "nameRequired": "Kompaniya nomini kiriting",
+      "changePassword": "Parolni o'zgartirish",
+      "changePasswordHint": "Shaxsiy kabinetga kirish parolini yangilang",
+      "currentPassword": "Joriy parol",
+      "newPassword": "Yangi parol",
+      "confirmPassword": "Parolni takrorlang",
+      "changePasswordBtn": "Parolni o'zgartirish",
+      "passwordChanged": "Parol o'zgartirildi",
+      "passwordTooShort": "Yangi parol kamida 6 belgidan iborat bo'lishi kerak",
+      "passwordMismatch": "Parollar mos kelmadi",
+      "passwordChangeError": "Parolni o'zgartirib bo'lmadi",
       "companyPhone": "Telefon",
       "companyWebsite": "Veb-sayt",
       "companyLegalAddress": "Yuridik manzil",
