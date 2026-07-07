@@ -25,6 +25,7 @@ import {
   QrCode,
   Trash2,
   Box,
+  Wallet,
   ChevronRight,
   Edit2,
   Loader2,
@@ -408,6 +409,7 @@ export default function ProjectsPage() {
                   { href: `/dashboard/projects/${project.id}/chessboard`, icon: LayoutGrid, label: t("chessboard") },
                   { href: `/dashboard/projects/${project.id}/customers`, icon: Users, label: t("customers") },
                   { href: `/dashboard/projects/${project.id}/contracts`, icon: FileText, label: "Договоры" },
+                  { href: `/dashboard/projects/${project.id}/finance`, icon: Wallet, label: "Финансы" },
                   { href: `/dashboard/projects/${project.id}/reports`, icon: BarChart2, label: "Отчёты" },
                   { href: `/dashboard/projects/${project.id}/scene3d`, icon: Box, label: "3D" },
                 ];

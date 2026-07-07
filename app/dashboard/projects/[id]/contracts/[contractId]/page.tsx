@@ -66,6 +66,7 @@ export default function ContractDetailPage() {
     new Date().toISOString().split("T")[0],
   );
   const [payComment, setPayComment] = useState("");
+  const [payMethod, setPayMethod] = useState<"CASH" | "CARD" | "P2P" | "BANK">("CASH");
   const [payLoading, setPayLoading] = useState(false);
   const [payDayEdit, setPayDayEdit] = useState("");
   const [savingDay, setSavingDay] = useState(false);
@@ -211,6 +212,7 @@ export default function ContractDetailPage() {
         paidAt: payDate,
         comment: payComment || undefined,
         type: "INSTALLMENT",
+        method: payMethod,
       });
       setContract(updated);
       setPayAmount("");
@@ -486,12 +488,27 @@ export default function ContractDetailPage() {
                         className="h-9 px-2 text-sm text-slate-900 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1E3A8A]/20 focus:border-[#1E3A8A]"
                       />
                     </div>
-                    <input
-                      value={payComment}
-                      onChange={(e) => setPayComment(e.target.value)}
-                      placeholder="Комментарий (необязательно)"
-                      className="w-full h-9 px-3 text-sm text-slate-900 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1E3A8A]/20 focus:border-[#1E3A8A]"
-                    />
+                    <div className="flex gap-2">
+                      <select
+                        value={payMethod}
+                        onChange={(e) =>
+                          setPayMethod(e.target.value as "CASH" | "CARD" | "P2P" | "BANK")
+                        }
+                        className="h-9 px-2 text-sm font-bold text-slate-900 border border-slate-200 rounded-xl outline-none focus:border-[#1E3A8A]"
+                        title="Касса (способ оплаты)"
+                      >
+                        <option value="CASH">Наличные</option>
+                        <option value="CARD">Карта</option>
+                        <option value="P2P">P2P</option>
+                        <option value="BANK">Банк</option>
+                      </select>
+                      <input
+                        value={payComment}
+                        onChange={(e) => setPayComment(e.target.value)}
+                        placeholder="Комментарий (необязательно)"
+                        className="flex-1 h-9 px-3 text-sm text-slate-900 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1E3A8A]/20 focus:border-[#1E3A8A]"
+                      />
+                    </div>
                     <button
                       type="submit"
                       disabled={payLoading}
@@ -571,8 +588,24 @@ export default function ContractDetailPage() {
                             {p.comment ? ` · ${p.comment}` : ""}
                           </p>
                         </div>
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 uppercase">
-                          Оплачено
+                        <span
+                          className={`text-[10px] font-black px-2 py-0.5 rounded-full text-white ${
+                            p.method === "BANK"
+                              ? "bg-orange-500"
+                              : p.method === "P2P"
+                                ? "bg-blue-600"
+                                : p.method === "CARD"
+                                  ? "bg-teal-600"
+                                  : "bg-emerald-600"
+                          }`}
+                        >
+                          {p.method === "BANK"
+                            ? "Банк"
+                            : p.method === "P2P"
+                              ? "P2P"
+                              : p.method === "CARD"
+                                ? "Карта"
+                                : "Наличные"}
                         </span>
                         <button
                           onClick={() => startPayEdit(p)}

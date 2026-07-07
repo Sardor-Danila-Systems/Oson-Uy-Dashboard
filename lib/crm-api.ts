@@ -69,6 +69,7 @@ export interface ContractPayment {
   amountUzs: string;
   paidAt: string;
   type: CustomerPaymentType;
+  method?: "CASH" | "CARD" | "P2P" | "BANK";
   comment: string | null;
   receiptUrl: string | null;
   createdAt: string;
@@ -465,6 +466,91 @@ export const scenes3dApi = {
       `/projects/${projectId}/scene/publish`,
       { method: "POST", body: JSON.stringify({ assetId }) },
     ),
+};
+
+// ── Finance (кассы, расходы, должники, аудит) ──────────────────────────────────
+
+export type PayMethod = "CASH" | "CARD" | "P2P" | "BANK";
+
+export interface KassaSummary {
+  kassa: Record<PayMethod, { income: string; expense: string; balance: string }>;
+  totalIncome: string;
+  totalExpense: string;
+  profit: string;
+}
+
+export interface ExpenseRow {
+  id: number;
+  title: string;
+  category: string;
+  amountUzs: number;
+  method: PayMethod;
+  spentAt: string;
+  comment: string | null;
+}
+
+export interface IncomeRow {
+  id: number;
+  amountUzs: number;
+  paidAt: string;
+  method: PayMethod;
+  type: string;
+  comment: string | null;
+  customer: { id: number; name: string } | null;
+  contract: { id: number; number: string } | null;
+}
+
+export interface DebtorsResponse {
+  buckets: { d30: string; d60: string; d90: string; d90p: string };
+  totalDebt: string;
+  count: number;
+  rows: {
+    contractId: number;
+    number: string;
+    customer: { id: number; name: string; phone: string };
+    apartment: string;
+    debtUzs: string;
+    overdueDays: number;
+    paidUzs: string;
+    totalUzs: string;
+  }[];
+}
+
+export interface AuditRow {
+  id: number;
+  entity: string;
+  entityId: number;
+  action: string;
+  summary: string;
+  createdAt: string;
+  developer: { id: number; name: string } | null;
+}
+
+export const financeApi = {
+  summary: (projectId: number) =>
+    apiFetch<KassaSummary>(`/projects/${projectId}/finance/summary`),
+  income: (projectId: number) =>
+    apiFetch<IncomeRow[]>(`/projects/${projectId}/finance/income`),
+  expenses: (projectId: number) =>
+    apiFetch<ExpenseRow[]>(`/projects/${projectId}/finance/expenses`),
+  addExpense: (projectId: number, body: object) =>
+    apiFetch<ExpenseRow>(`/projects/${projectId}/finance/expenses`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  removeExpense: (projectId: number, id: number) =>
+    apiFetch<{ ok: boolean }>(`/projects/${projectId}/finance/expenses/${id}`, {
+      method: "DELETE",
+    }),
+  transfer: (projectId: number, body: object) =>
+    apiFetch<object>(`/projects/${projectId}/finance/transfers`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  debtors: (projectId: number) =>
+    apiFetch<DebtorsResponse>(`/projects/${projectId}/finance/debtors`),
+  audit: (projectId: number) =>
+    apiFetch<AuditRow[]>(`/projects/${projectId}/finance/audit`),
 };
 
 // ── Apartments ────────────────────────────────────────────────────────────────
