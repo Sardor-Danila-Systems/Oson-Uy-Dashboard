@@ -380,7 +380,7 @@ export default function ProjectsPage() {
       <div className="grid gap-8 sm:grid-cols-2">
         {projects.map((project) => (
           <div key={project.id} className="group rounded-[2.5rem] border border-slate-100 bg-white overflow-hidden shadow-sm hover:shadow-2xl transition-all hover:-translate-y-1">
-            <div className="relative h-64">
+            <div className="relative h-64 overflow-hidden">
               <img src={project.imageUrl} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" alt={project.name} />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6">
@@ -394,32 +394,67 @@ export default function ProjectsPage() {
               )}
             </div>
 
-            {/* Workspace entry — единая точка входа в проект */}
-            <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-3 sm:px-6">
-              <div className="flex flex-wrap items-center gap-2">
-                <Link
-                  href={`/dashboard/projects/${project.id}`}
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#1E3A8A] px-4 py-2.5 text-[13px] font-black text-white transition hover:bg-blue-900"
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                  Открыть рабочую область
-                </Link>
-                <Link
-                  href={`/dashboard/progress?projectId=${project.id}`}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[13px] font-bold text-slate-600 transition hover:border-[#1E3A8A] hover:text-[#1E3A8A]"
-                  title={t("progress")}
-                >
-                  <ListChecks className="h-4 w-4" />
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => onEdit(project)}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[13px] font-bold text-slate-600 transition hover:border-[#1E3A8A] hover:text-[#1E3A8A]"
-                  title={t("edit")}
-                >
-                  <Edit2 className="h-4 w-4" />
-                </button>
-              </div>
+            {/* Workspace entry — быстрые разделы + рабочая область */}
+            <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-3 sm:px-6 space-y-2.5">
+              {(() => {
+                const ultraOk = hasUltimateWorkspaceAccess({
+                  plan: project.plan,
+                  status: project.subscriptionStatus,
+                });
+                const chip =
+                  "inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-bold text-slate-600 transition hover:border-[#1E3A8A] hover:text-[#1E3A8A]";
+                const lockChip =
+                  "inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-bold text-amber-700 transition hover:bg-amber-100";
+                const quick = [
+                  { seg: "chessboard", icon: LayoutGrid, label: t("chessboard") },
+                  { seg: "customers", icon: Users, label: t("customers") },
+                  { seg: "contracts", icon: FileText, label: "Договоры" },
+                  { seg: "finance", icon: Wallet, label: "Финансы" },
+                ];
+                return (
+                  <>
+                    <div className="flex flex-wrap gap-2">
+                      {quick.map((q) =>
+                        ultraOk ? (
+                          <Link key={q.seg} href={`/dashboard/projects/${project.id}/${q.seg}`} className={chip}>
+                            <q.icon className="h-3.5 w-3.5" />
+                            {q.label}
+                          </Link>
+                        ) : (
+                          <Link key={q.seg} href="/dashboard/subscriptions" className={lockChip} title={t("ultraUpgradeHint")}>
+                            <Lock className="h-3.5 w-3.5" />
+                            {q.label}
+                          </Link>
+                        ),
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/dashboard/projects/${project.id}`}
+                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#1E3A8A] px-4 py-2.5 text-[13px] font-black text-white transition hover:bg-blue-900"
+                      >
+                        <LayoutGrid className="h-4 w-4" />
+                        Открыть рабочую область
+                      </Link>
+                      <Link
+                        href={`/dashboard/progress?projectId=${project.id}`}
+                        className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-600 transition hover:border-[#1E3A8A] hover:text-[#1E3A8A]"
+                        title={t("progress")}
+                      >
+                        <ListChecks className="h-4 w-4" />
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => onEdit(project)}
+                        className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-600 transition hover:border-[#1E3A8A] hover:text-[#1E3A8A]"
+                        title={t("edit")}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
             <div className="p-8 space-y-6">
