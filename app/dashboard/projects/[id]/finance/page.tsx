@@ -224,18 +224,6 @@ export default function FinancePage() {
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-3">
-        <Link
-          href="/dashboard/projects"
-          className="flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-[#1E3A8A]"
-        >
-          <ArrowLeft className="h-4 w-4" /> Проекты
-        </Link>
-        <span className="text-slate-300">/</span>
-        <span className="text-sm font-black text-[#1E3A8A]">Финансы</span>
-      </div>
-
       {notice && (
         <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
           {notice}

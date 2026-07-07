@@ -394,59 +394,32 @@ export default function ProjectsPage() {
               )}
             </div>
 
-            {/* Action bar — labeled buttons, no more icon pile on the photo */}
+            {/* Workspace entry — единая точка входа в проект */}
             <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-3 sm:px-6">
-              {(() => {
-                const ultraOk = hasUltimateWorkspaceAccess({
-                  plan: project.plan,
-                  status: project.subscriptionStatus,
-                });
-                const btn =
-                  "inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-black text-slate-700 transition hover:border-[#1E3A8A] hover:text-[#1E3A8A]";
-                const lockBtn =
-                  "inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-black text-amber-800 transition hover:bg-amber-100";
-                const ultraActions = [
-                  { href: `/dashboard/projects/${project.id}/chessboard`, icon: LayoutGrid, label: t("chessboard") },
-                  { href: `/dashboard/projects/${project.id}/customers`, icon: Users, label: t("customers") },
-                  { href: `/dashboard/projects/${project.id}/contracts`, icon: FileText, label: "Договоры" },
-                  { href: `/dashboard/projects/${project.id}/finance`, icon: Wallet, label: "Финансы" },
-                  { href: `/dashboard/projects/${project.id}/reports`, icon: BarChart2, label: "Отчёты" },
-                  { href: `/dashboard/projects/${project.id}/scene3d`, icon: Box, label: "3D" },
-                ];
-                return (
-                  <div className="flex flex-wrap gap-2">
-                    {ultraActions.map((a) =>
-                      ultraOk ? (
-                        <Link key={a.label} href={a.href} className={btn}>
-                          <a.icon className="h-3.5 w-3.5" />
-                          {a.label}
-                        </Link>
-                      ) : (
-                        <Link
-                          key={a.label}
-                          href="/dashboard/subscriptions"
-                          className={lockBtn}
-                          title={t("ultraUpgradeHint")}
-                        >
-                          <Lock className="h-3.5 w-3.5" />
-                          {a.label}
-                        </Link>
-                      ),
-                    )}
-                    <Link
-                      href={`/dashboard/progress?projectId=${project.id}`}
-                      className={btn}
-                    >
-                      <ListChecks className="h-3.5 w-3.5" />
-                      {t("progress")}
-                    </Link>
-                    <button type="button" onClick={() => onEdit(project)} className={btn}>
-                      <Edit2 className="h-3.5 w-3.5" />
-                      {t("edit")}
-                    </button>
-                  </div>
-                );
-              })()}
+              <div className="flex flex-wrap items-center gap-2">
+                <Link
+                  href={`/dashboard/projects/${project.id}`}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#1E3A8A] px-4 py-2.5 text-[13px] font-black text-white transition hover:bg-blue-900"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  Открыть рабочую область
+                </Link>
+                <Link
+                  href={`/dashboard/progress?projectId=${project.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[13px] font-bold text-slate-600 transition hover:border-[#1E3A8A] hover:text-[#1E3A8A]"
+                  title={t("progress")}
+                >
+                  <ListChecks className="h-4 w-4" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => onEdit(project)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[13px] font-bold text-slate-600 transition hover:border-[#1E3A8A] hover:text-[#1E3A8A]"
+                  title={t("edit")}
+                >
+                  <Edit2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
             <div className="p-8 space-y-6">

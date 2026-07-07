@@ -553,6 +553,78 @@ export const financeApi = {
     apiFetch<AuditRow[]>(`/projects/${projectId}/finance/audit`),
 };
 
+// ── Members (роли, команда, права) ─────────────────────────────────────────────
+
+export type MemberRole = "OWNER" | "ADMIN" | "MANAGER" | "SALES";
+export type PermKey =
+  | "chessboard"
+  | "customers"
+  | "contracts"
+  | "payments"
+  | "finance"
+  | "reports"
+  | "scene3d"
+  | "team";
+export type PermMap = Record<PermKey, boolean>;
+
+export interface MemberMe {
+  memberId: number;
+  role: MemberRole;
+  roleLabel: string;
+  permissions: PermMap;
+}
+export interface TeamMember {
+  id: number;
+  role: MemberRole;
+  roleLabel: string;
+  permissions: PermMap;
+  hasOverrides: boolean;
+  isYou: boolean;
+  createdAt: string;
+  developer: { id: number; name: string; email: string | null; phone: string | null };
+}
+export interface MembersCatalog {
+  permissions: { key: PermKey; label: string }[];
+  roles: { role: MemberRole; label: string; defaults: PermMap }[];
+}
+
+export const membersApi = {
+  me: (projectId: number) =>
+    apiFetch<MemberMe>(`/projects/${projectId}/members/me`),
+  catalog: (projectId: number) =>
+    apiFetch<MembersCatalog>(`/projects/${projectId}/members/catalog`),
+  list: (projectId: number) =>
+    apiFetch<TeamMember[]>(`/projects/${projectId}/members`),
+  invite: (
+    projectId: number,
+    body: { name?: string; email: string; role: MemberRole; password?: string },
+  ) =>
+    apiFetch<{
+      id: number;
+      role: MemberRole;
+      roleLabel: string;
+      developer: { id: number; name: string; email: string | null };
+      tempPassword: string | null;
+    }>(`/projects/${projectId}/members`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateRole: (projectId: number, memberId: number, role: MemberRole) =>
+    apiFetch<{ ok: boolean }>(
+      `/projects/${projectId}/members/${memberId}/role`,
+      { method: "PATCH", body: JSON.stringify({ role }) },
+    ),
+  updatePermissions: (projectId: number, memberId: number, permissions: PermMap) =>
+    apiFetch<{ ok: boolean }>(
+      `/projects/${projectId}/members/${memberId}/permissions`,
+      { method: "PATCH", body: JSON.stringify({ permissions }) },
+    ),
+  remove: (projectId: number, memberId: number) =>
+    apiFetch<{ ok: boolean }>(`/projects/${projectId}/members/${memberId}`, {
+      method: "DELETE",
+    }),
+};
+
 // ── Apartments ────────────────────────────────────────────────────────────────
 
 export const apartmentsApi = {
