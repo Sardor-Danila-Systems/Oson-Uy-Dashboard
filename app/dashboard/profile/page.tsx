@@ -62,6 +62,7 @@ const emptyForm: CompanyForm = {
 export default function ProfilePage() {
   const t = useTranslations("Dashboard.profile");
   const [name, setName] = useState("");
+  const [accountRole, setAccountRole] = useState<"OWNER" | "MANAGER" | "SALES">("OWNER");
   const [telegramLinked, setTelegramLinked] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,6 +87,7 @@ export default function ProfilePage() {
         id: number;
         name: string;
         email?: string | null;
+        accountRole?: "OWNER" | "MANAGER" | "SALES";
         telegramLinked?: boolean;
         phone?: string | null;
         legalAddress?: string | null;
@@ -98,6 +100,7 @@ export default function ProfilePage() {
     ]);
     setDeveloperId(developer.id);
     setName(developer.name);
+    if (developer.accountRole) setAccountRole(developer.accountRole);
     setTelegramLinked(Boolean(developer.telegramLinked));
     const next: CompanyForm = {
       name: developer.name ?? "",
@@ -386,7 +389,11 @@ export default function ProfilePage() {
                     {name || "—"}
                   </h3>
                   <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    {t("developer")}
+                    {accountRole === "SALES"
+                      ? "Отдел продаж"
+                      : accountRole === "MANAGER"
+                        ? "Менеджер"
+                        : t("developer")}
                   </p>
                 </div>
 

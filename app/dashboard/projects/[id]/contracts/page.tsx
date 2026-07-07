@@ -77,8 +77,10 @@ export default function ContractsPage() {
 
   const totalPages = Math.ceil(total / LIMIT);
 
-  const summaryTotal = contracts.reduce((s, c) => s + Number(c.totalPriceUzs), 0);
-  const summaryPaid  = contracts.reduce((s, c) => s + Number(c.paidUzs), 0);
+  // Отменённые/расторгнутые договоры не учитываем в суммах
+  const activeContracts = contracts.filter((c) => c.status !== "CANCELED");
+  const summaryTotal = activeContracts.reduce((s, c) => s + Number(c.totalPriceUzs), 0);
+  const summaryPaid  = activeContracts.reduce((s, c) => s + Number(c.paidUzs), 0);
 
   const exportXlsx = () => {
     const rows = contracts.map((c) => ({
@@ -208,16 +210,35 @@ export default function ContractsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {contracts.map((c) => (
+                {contracts.map((c) => {
+                  const overdue = Number(c.overdueUzs ?? 0);
+                  const bigDebt = overdue >= 50_000_000; // крупная задолженность
+                  return (
                   <tr
                     key={c.id}
                     onClick={() => router.push(`/dashboard/projects/${projectId}/contracts/${c.id}`)}
-                    className="hover:bg-orange-50/60 cursor-pointer transition group"
+                    className={`cursor-pointer transition group ${
+                      bigDebt
+                        ? "bg-red-50/70 hover:bg-red-100/70"
+                        : overdue > 0
+                          ? "bg-amber-50/50 hover:bg-amber-50"
+                          : "hover:bg-orange-50/60"
+                    }`}
                   >
-                    <td className="px-5 py-4 font-black text-[#1E3A8A]">{c.number}</td>
+                    <td className="px-5 py-4 font-black text-[#1E3A8A]">
+                      {bigDebt && (
+                        <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-red-500 align-middle" title="Крупная задолженность" />
+                      )}
+                      {c.number}
+                    </td>
                     <td className="px-5 py-4">
                       <p className="font-bold text-slate-900 truncate max-w-[150px]">{c.customer.name}</p>
                       <p className="text-xs text-slate-400">{c.customer.phone}</p>
+                      {overdue > 0 && (
+                        <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-black ${bigDebt ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                          Просрочка {fmt(c.overdueUzs ?? 0)} сум
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-4 text-xs text-slate-500 whitespace-nowrap">
                       {new Date(c.contractDate).toLocaleDateString("ru-RU")}
@@ -247,7 +268,8 @@ export default function ContractsPage() {
                       <ChevronRight className="h-4 w-4 text-slate-200 group-hover:text-[#F97316] transition" />
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

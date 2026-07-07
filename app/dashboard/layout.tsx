@@ -50,6 +50,7 @@ export default function DashboardLayout({
   const [checkingSession, setCheckingSession] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [accountRole, setAccountRole] = useState<"OWNER" | "MANAGER" | "SALES">("OWNER");
 
   const toggleLocale = () => {
     const nextLocale = locale === "ru" ? "uz" : "ru";
@@ -118,6 +119,11 @@ export default function DashboardLayout({
       }
       try {
         await apiFetch<{ developerId: number }>("/auth/me");
+        // роль аккаунта → адаптируем навигацию под сотрудника
+        const dev = await apiFetch<{ accountRole?: "OWNER" | "MANAGER" | "SALES" }>(
+          "/developers",
+        );
+        if (dev.accountRole) setAccountRole(dev.accountRole);
       } catch (err) {
         if (err instanceof ApiAuthError) {
           logout();
@@ -128,15 +134,24 @@ export default function DashboardLayout({
     })();
   }, [token]);
 
-  const navItems = [
-    { name: t("nav.dashboard"), href: "/dashboard", icon: LayoutDashboard },
-    { name: t("nav.leads"), href: "/dashboard/leads", icon: Users },
-    { name: t("nav.projects"), href: "/dashboard/projects", icon: Building2 },
-    { name: t("nav.progress"), href: "/dashboard/progress", icon: CheckCircle2 },
-    { name: t("nav.floors"), href: "/dashboard/floors", icon: Layers },
-    { name: t("nav.subscriptions"), href: "/dashboard/subscriptions", icon: CreditCard },
-    { name: t("nav.profile"), href: "/dashboard/profile", icon: UserCircle },
-  ];
+  // Пункты меню с уровнем доступа: sales — минимум, manager — без биллинга, owner — всё
+  const ALL_NAV = [
+    { name: t("nav.dashboard"), href: "/dashboard", icon: LayoutDashboard, min: "SALES" },
+    { name: t("nav.leads"), href: "/dashboard/leads", icon: Users, min: "SALES" },
+    { name: t("nav.projects"), href: "/dashboard/projects", icon: Building2, min: "SALES" },
+    { name: t("nav.progress"), href: "/dashboard/progress", icon: CheckCircle2, min: "MANAGER" },
+    { name: t("nav.floors"), href: "/dashboard/floors", icon: Layers, min: "MANAGER" },
+    { name: t("nav.subscriptions"), href: "/dashboard/subscriptions", icon: CreditCard, min: "OWNER" },
+    { name: t("nav.profile"), href: "/dashboard/profile", icon: UserCircle, min: "SALES" },
+  ] as const;
+  const RANK: Record<string, number> = { SALES: 0, MANAGER: 1, OWNER: 2 };
+  const navItems = ALL_NAV.filter((i) => RANK[accountRole] >= RANK[i.min]);
+  const roleLabel =
+    accountRole === "SALES"
+      ? "Отдел продаж"
+      : accountRole === "MANAGER"
+        ? "Менеджер"
+        : t("common.developer");
 
   const sidebarClass = `fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-100 shadow-2xl transition-transform duration-300 transform md:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`;
 
@@ -201,7 +216,7 @@ export default function DashboardLayout({
           <div className="shrink-0 border-t border-slate-50 p-4">
             <div className="bg-slate-50 rounded-[2rem] p-6 space-y-4">
               <div className="space-y-1">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("common.developer")}</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{roleLabel}</p>
                 <p className="text-sm font-bold text-slate-900 truncate">{developerName || "—"}</p>
               </div>
               <button

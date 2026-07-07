@@ -114,7 +114,10 @@ export interface Contract {
   paymentSchedule: PaymentScheduleItem[];
 }
 
-export type ContractListItem = Omit<Contract, "paymentSchedule" | "debtUzs">;
+export type ContractListItem = Omit<Contract, "paymentSchedule" | "debtUzs"> & {
+  /** Просроченная задолженность по графику (сумма неоплаченных просроченных платежей) */
+  overdueUzs?: string;
+};
 
 export interface ContractListResponse {
   items: ContractListItem[];

@@ -41,12 +41,17 @@ export default function SubscriptionsPage() {
   const [promoCode, setPromoCode] = useState("");
   const [redeeming, setRedeeming] = useState(false);
   const [promoProjectId, setPromoProjectId] = useState<number>(0);
+  const [denied, setDenied] = useState(false);
 
   const loadData = React.useCallback(async () => {
     try {
       setLoading(true);
-      const projectsData = await apiFetch<any[]>("/projects/mine");
       const currentDeveloper = await apiFetch<any>("/developers");
+      if (currentDeveloper.accountRole && currentDeveloper.accountRole !== "OWNER") {
+        setDenied(true);
+        return;
+      }
+      const projectsData = await apiFetch<any[]>("/projects/mine");
       setProjects(projectsData.filter(p => p.developerId === currentDeveloper.id));
     } catch (err) {
       setError("Error loading data");
@@ -126,6 +131,17 @@ export default function SubscriptionsPage() {
   if (loading) return (
     <div className="flex h-[60vh] items-center justify-center">
       <Loader2 className="h-12 w-12 animate-spin text-[#1E3A8A]" />
+    </div>
+  );
+
+  if (denied) return (
+    <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-24 text-center">
+      <CreditCard className="h-11 w-11 text-slate-300" />
+      <h2 className="text-xl font-black text-slate-800">Только для владельца</h2>
+      <p className="text-sm font-medium text-slate-500">
+        Управление тарифами и оплатой подписок доступно владельцу аккаунта.
+        Сотрудники работают в проектах по своим правам.
+      </p>
     </div>
   );
 
