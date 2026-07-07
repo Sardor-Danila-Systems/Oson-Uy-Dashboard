@@ -307,6 +307,19 @@ export default function ProfilePage() {
     },
   ];
 
+  if (!loading && accountRole !== "OWNER") {
+    return (
+      <section className="mx-auto flex max-w-md flex-col items-center gap-4 py-24 text-center">
+        <Building2 className="h-11 w-11 text-slate-300" />
+        <h2 className="text-xl font-black text-slate-800">Профиль компании</h2>
+        <p className="text-sm font-medium text-slate-500">
+          Профиль застройщика доступен только владельцу аккаунта. Как сотрудник
+          вы работаете в назначенных проектах.
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">

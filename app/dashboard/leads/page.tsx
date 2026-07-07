@@ -126,8 +126,8 @@ export default function LeadsPage() {
       const allProjects = await apiFetch<
         Array<{ id: number; name: string; developerId: number }>
       >("/projects/mine");
-      const own = allProjects.filter((p) => p.developerId === currentDeveloper.id);
-      setProjectOptions(own.map((p) => ({ id: p.id, name: p.name })));
+      // все проекты пользователя (владелец + участник), а не только собственные
+      setProjectOptions(allProjects.map((p) => ({ id: p.id, name: p.name })));
 
       const leadsPath =
         projectFilter === "all"
@@ -145,7 +145,6 @@ export default function LeadsPage() {
         : (data as { items?: ApiLead[] }).items ?? [];
       setLeads(
         rows
-          .filter((lead) => lead.project?.developerId === currentDeveloper.id)
           .map((lead) => ({
             id: lead.id,
             name: lead.name,

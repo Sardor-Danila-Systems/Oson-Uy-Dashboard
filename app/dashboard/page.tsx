@@ -48,10 +48,12 @@ export default function DashboardOverview() {
         const leads = await apiFetch<any[]>("/leads");
         const feedbacks = await apiFetch<any>("/leads/feedback/summary");
         const projects = await apiFetch<any[]>("/projects/mine");
-        const currentDev = await apiFetch<any>("/developers");
 
-        const devLeads = leads.filter(l => l.project?.developerId === currentDev.id);
-        const devProjects = projects.filter(p => p.developerId === currentDev.id);
+        // /leads и /projects/mine уже возвращают данные по проектам пользователя (owner+member)
+        // (владелец + участник) — доп. фильтр по владельцу убран, чтобы сотрудники
+        // видели назначенные объекты и заявки.
+        const devLeads = Array.isArray(leads) ? leads : [];
+        const devProjects = Array.isArray(projects) ? projects : [];
 
         setStats({
           totalLeads: devLeads.length,

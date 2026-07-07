@@ -142,7 +142,7 @@ export default function DashboardLayout({
     { name: t("nav.progress"), href: "/dashboard/progress", icon: CheckCircle2, min: "MANAGER" },
     { name: t("nav.floors"), href: "/dashboard/floors", icon: Layers, min: "MANAGER" },
     { name: t("nav.subscriptions"), href: "/dashboard/subscriptions", icon: CreditCard, min: "OWNER" },
-    { name: t("nav.profile"), href: "/dashboard/profile", icon: UserCircle, min: "SALES" },
+    { name: t("nav.profile"), href: "/dashboard/profile", icon: UserCircle, min: "OWNER" },
   ] as const;
   const RANK: Record<string, number> = { SALES: 0, MANAGER: 1, OWNER: 2 };
   const navItems = ALL_NAV.filter((i) => RANK[accountRole] >= RANK[i.min]);

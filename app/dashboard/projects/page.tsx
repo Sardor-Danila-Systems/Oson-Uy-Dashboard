@@ -128,6 +128,8 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeDeveloperId, setActiveDeveloperId] = useState<number | null>(null);
+  const [accountRole, setAccountRole] = useState<"OWNER" | "MANAGER" | "SALES">("OWNER");
+  const isOwner = accountRole === "OWNER";
 
   const resetForm = () => {
     setForm(defaultForm);
@@ -141,14 +143,16 @@ export default function ProjectsPage() {
       setLoading(true);
       setError(null);
       const projectsData = await apiFetch<any[]>("/projects/mine");
-      const currentDeveloper = await apiFetch<Developer>("/developers");
-      
+      const currentDeveloper = await apiFetch<Developer & { accountRole?: "OWNER" | "MANAGER" | "SALES" }>("/developers");
+
       setActiveDeveloperId(currentDeveloper.id);
+      setAccountRole(currentDeveloper.accountRole ?? "OWNER");
       setForm((current) => ({ ...current, developerId: currentDeveloper.id }));
-      
-      const ownProjects = projectsData.filter(p => p.developerId === currentDeveloper.id);
+
+      // Показываем все проекты, где пользователь участник (не только владелец),
+      // чтобы сотрудники видели назначенные им объекты.
       setProjects(
-        ownProjects.map((project) => ({
+        projectsData.map((project) => ({
           id: project.id,
           name: project.name,
           location: project.location,
@@ -359,15 +363,17 @@ export default function ProjectsPage() {
           <h1 className="text-3xl font-black text-[#1E3A8A] tracking-tight">{t("title")}</h1>
           <p className="text-slate-500 font-medium">{t("subtitle")}</p>
         </div>
-        <button 
-          onClick={() => {
-            document.getElementById("project-form")?.scrollIntoView({ behavior: "smooth" });
-            resetForm();
-          }}
-          className="h-14 px-8 rounded-2xl bg-[#1E3A8A] text-white font-black uppercase tracking-widest shadow-xl shadow-blue-900/10 hover:bg-blue-800 transition-all flex items-center gap-2"
-        >
-          <Plus className="h-5 w-5" /> {t("newProject")}
-        </button>
+        {isOwner && (
+          <button
+            onClick={() => {
+              document.getElementById("project-form")?.scrollIntoView({ behavior: "smooth" });
+              resetForm();
+            }}
+            className="h-14 px-8 rounded-2xl bg-[#1E3A8A] text-white font-black uppercase tracking-widest shadow-xl shadow-blue-900/10 hover:bg-blue-800 transition-all flex items-center gap-2"
+          >
+            <Plus className="h-5 w-5" /> {t("newProject")}
+          </button>
+        )}
       </div>
 
       {error && (
@@ -443,14 +449,16 @@ export default function ProjectsPage() {
                       >
                         <ListChecks className="h-4 w-4" />
                       </Link>
-                      <button
-                        type="button"
-                        onClick={() => onEdit(project)}
-                        className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-600 transition hover:border-[#1E3A8A] hover:text-[#1E3A8A]"
-                        title={t("edit")}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
+                      {isOwner && (
+                        <button
+                          type="button"
+                          onClick={() => onEdit(project)}
+                          className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-600 transition hover:border-[#1E3A8A] hover:text-[#1E3A8A]"
+                          title={t("edit")}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   </>
                 );
@@ -476,19 +484,29 @@ export default function ProjectsPage() {
                     </div>
                   )}
                 </div>
-                <button 
-                  onClick={() => onEdit(project)}
-                  className="text-sm font-black text-[#1E3A8A] uppercase tracking-widest flex items-center gap-1 group-hover:gap-2 transition-all"
-                >
-                  {t("details")} <ChevronRight className="h-4 w-4" />
-                </button>
+                {isOwner ? (
+                  <button
+                    onClick={() => onEdit(project)}
+                    className="text-sm font-black text-[#1E3A8A] uppercase tracking-widest flex items-center gap-1 group-hover:gap-2 transition-all"
+                  >
+                    {t("details")} <ChevronRight className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <Link
+                    href={`/dashboard/projects/${project.id}`}
+                    className="text-sm font-black text-[#1E3A8A] uppercase tracking-widest flex items-center gap-1 group-hover:gap-2 transition-all"
+                  >
+                    Открыть <ChevronRight className="h-4 w-4" />
+                  </Link>
+                )}
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Main Form Section */}
+      {/* Main Form Section — только для владельца */}
+      {isOwner && (
       <div id="project-form" className="scroll-mt-10">
         <form onSubmit={onSubmit} className="rounded-[3rem] border border-slate-100 bg-white p-10 shadow-sm space-y-12">
           <div className="flex items-center gap-4">
@@ -694,6 +712,7 @@ export default function ProjectsPage() {
           </div>
         </form>
       </div>
+      )}
 
     </div>
   );
