@@ -77,7 +77,9 @@ export default function ProjectOverview() {
     );
   }
 
-  const visible = CARDS.filter((c) => !c.perm || (me?.permissions[c.perm] ?? false));
+  // Скрываем раздел только если ТОЧНО знаем, что права нет (me загружен и false).
+  // Если me не загрузился — показываем всё (гейт только по тарифу Ultra).
+  const visible = CARDS.filter((c) => !c.perm || !me || me.permissions[c.perm]);
 
   return (
     <div className="space-y-6">

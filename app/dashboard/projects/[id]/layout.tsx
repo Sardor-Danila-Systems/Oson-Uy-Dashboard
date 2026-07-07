@@ -135,8 +135,9 @@ export default function ProjectWorkspaceLayout({
             </div>
           ) : (
             TABS.map((tab) => {
-              // видимость: право есть (или таб без права) — иначе скрываем
-              const allowed = !tab.perm || (me?.permissions[tab.perm] ?? false);
+              // Скрываем раздел только если ТОЧНО знаем, что права нет.
+              // Если роль/права не загрузились (me === null) — показываем (гейт по тарифу).
+              const allowed = !tab.perm || !me || me.permissions[tab.perm];
               if (!allowed) return null;
               const locked = tab.ultra === true && !ultra;
               const href = locked
