@@ -63,7 +63,8 @@ export const UZB_LOCATIONS: LocationData[] = [
       "Payaryk (Пайарыкский)",
       "Pastdargom (Пастдаргомский)",
       "Samarkand District (Самаркандский р-н)",
-      "Toyloq (Тайлакский)"
+      "Toyloq (Тайлакский)",
+      "Urgut (Ургутский)"
     ]
   },
   {
