@@ -10,16 +10,15 @@ import {
   getToken,
 } from "@/lib/api";
 import { formatUzs } from "@/lib/currency";
-import { compressImage } from "@/lib/image";
-import { 
+import { ImageUploader, type UploadedImage } from "@/components/ImageUploader";
+import {
   Plus, 
   Building2, 
   MapPin, 
   Layers, 
   Home, 
   Calendar, 
-  Video, 
-  Image as ImageIcon,
+  Video,
   CheckCircle2,
   AlertCircle,
   QrCode,
@@ -72,8 +71,18 @@ type Project = {
   developerId: number;
   plan?: "START" | "PRO" | "PREMIUM" | "ULTIMATE";
   subscriptionStatus?: "TRIAL" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "EXPIRED";
-  media?: Array<{ imageUrl: string }>;
+  media?: Array<{
+    imageUrl: string;
+    thumbnailUrl?: string;
+    width?: number;
+    height?: number;
+    mimeType?: string;
+    optimizedSize?: number;
+  }>;
 };
+
+/** Hard cap of images per project (UI-side). */
+const MAX_PROJECT_IMAGES = 7;
 
 type ProjectForm = Omit<Project, "id">;
 type Developer = { id: number; name: string; qrCodeUrl?: string };
@@ -120,9 +129,8 @@ export default function ProjectsPage() {
   const locale = useLocale();
   const [projects, setProjects] = useState<Project[]>([]);
   const [form, setForm] = useState<ProjectForm>(defaultForm);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedMedia, setUploadedMedia] = useState<UploadedImage[]>([]);
+  const [notice, setNotice] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [isUploadingProjectQr, setIsUploadingProjectQr] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -133,9 +141,22 @@ export default function ProjectsPage() {
 
   const resetForm = () => {
     setForm(defaultForm);
-    setSelectedFiles([]);
-    setUploadedImageUrls([]);
+    setUploadedMedia([]);
     setEditingId(null);
+  };
+
+  const showNotice = (msg: string, type: "success" | "error") => {
+    setNotice({ msg, type });
+    window.setTimeout(() => setNotice(null), 3500);
+  };
+
+  const onImagesUploaded = (items: UploadedImage[]) => {
+    setUploadedMedia((prev) => {
+      const next = [...prev, ...items];
+      // First image becomes the cover if none is chosen yet.
+      if (!form.imageUrl && next[0]) setForm((f) => ({ ...f, imageUrl: next[0].imageUrl }));
+      return next;
+    });
   };
 
   const loadData = async () => {
@@ -260,7 +281,16 @@ export default function ProjectsPage() {
         mapEmbedUrl: toEmbedMapUrl(form.mapEmbedUrl),
         // Always send the array (even empty) when editing so removed photos
         // are actually deleted; for a brand-new project an empty array is fine.
-        imageUrls: editingId ? uploadedImageUrls : uploadedImageUrls.length ? uploadedImageUrls : undefined,
+        imageUrls: editingId
+          ? uploadedMedia.map((m) => m.imageUrl)
+          : uploadedMedia.length
+            ? uploadedMedia.map((m) => m.imageUrl)
+            : undefined,
+        mediaItems: editingId
+          ? uploadedMedia
+          : uploadedMedia.length
+            ? uploadedMedia
+            : undefined,
         developerId: activeDeveloperId,
       };
 
@@ -286,43 +316,32 @@ export default function ProjectsPage() {
 
   const onEdit = (project: Project) => {
     setEditingId(project.id);
-    const mediaUrls = project.media?.map((m) => m.imageUrl) ?? [];
-    setUploadedImageUrls([...new Set([project.imageUrl, ...mediaUrls])].filter(Boolean));
+    // Build the gallery from stored media, guaranteeing the cover is included.
+    const items: UploadedImage[] = project.media?.length
+      ? project.media.map((m) => ({
+          imageUrl: m.imageUrl,
+          thumbnailUrl: m.thumbnailUrl,
+          width: m.width,
+          height: m.height,
+          mimeType: m.mimeType,
+          optimizedSize: m.optimizedSize,
+        }))
+      : project.imageUrl
+        ? [{ imageUrl: project.imageUrl }]
+        : [];
+    if (project.imageUrl && !items.some((i) => i.imageUrl === project.imageUrl)) {
+      items.unshift({ imageUrl: project.imageUrl });
+    }
+    setUploadedMedia(items);
     setForm({ ...project });
     document.getElementById("project-form")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const uploadSelectedImages = async () => {
-    if (!selectedFiles.length) return;
-    try {
-      setIsUploading(true);
-      const uploaded = await Promise.all(
-        selectedFiles.map(async (file) => {
-          const formData = new FormData();
-          formData.append("file", await compressImage(file));
-          const res = await fetch(`${API_URL}/upload/image`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${getToken()}` },
-            body: formData,
-          });
-          return (await res.json()).url;
-        })
-      );
-      setUploadedImageUrls(prev => [...prev, ...uploaded]);
-      if (!form.imageUrl) setForm(f => ({ ...f, imageUrl: uploaded[0] }));
-      setSelectedFiles([]);
-    } catch (err) {
-      setError("Error uploading images");
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const removeUploadedImage = (url: string) => {
-    setUploadedImageUrls((prev) => {
-      const next = prev.filter((u) => u !== url);
-      // If the removed image was the cover, fall back to the first remaining one
-      setForm((f) => (f.imageUrl === url ? { ...f, imageUrl: next[0] ?? "" } : f));
+  const removeUploadedMedia = (url: string) => {
+    setUploadedMedia((prev) => {
+      const next = prev.filter((m) => m.imageUrl !== url);
+      // If the removed image was the cover, fall back to the first remaining one.
+      setForm((f) => (f.imageUrl === url ? { ...f, imageUrl: next[0]?.imageUrl ?? "" } : f));
       return next;
     });
   };
@@ -358,6 +377,20 @@ export default function ProjectsPage() {
 
   return (
     <div className="space-y-10 animate-in fade-in duration-500 pb-20">
+      {notice && (
+        <div
+          className={`fixed right-6 top-6 z-[100] flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-black text-white shadow-2xl animate-in slide-in-from-top-4 ${
+            notice.type === "success" ? "bg-emerald-600" : "bg-red-500"
+          }`}
+        >
+          {notice.type === "success" ? (
+            <CheckCircle2 className="h-5 w-5" />
+          ) : (
+            <AlertCircle className="h-5 w-5" />
+          )}
+          {notice.msg}
+        </div>
+      )}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-2">
           <h1 className="text-3xl font-black text-[#1E3A8A] tracking-tight">{t("title")}</h1>
@@ -588,35 +621,46 @@ export default function ProjectsPage() {
             <div className="space-y-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t("form.media")}</label>
-                <div className="flex gap-4">
-                  <div className="relative flex-1">
-                    <input type="file" multiple accept="image/*" onChange={e => setSelectedFiles(Array.from(e.target.files || []))} className="absolute inset-0 opacity-0 cursor-pointer" />
-                    <div className="h-14 w-full rounded-2xl border-2 border-dashed border-slate-100 flex items-center justify-center gap-2 text-slate-400 text-sm font-bold bg-slate-50 hover:bg-slate-100 transition-all">
-                      <ImageIcon className="h-4 w-4" /> {t("form.chooseFiles")}
-                    </div>
-                  </div>
-                  <button 
-                    type="button" 
-                    onClick={uploadSelectedImages} 
-                    disabled={!selectedFiles.length || isUploading}
-                    className="h-14 px-6 rounded-2xl bg-slate-900 text-white font-black uppercase text-[10px] tracking-widest disabled:opacity-50"
-                  >
-                    {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : t("form.upload")}
-                  </button>
-                </div>
-                {uploadedImageUrls.length > 0 && (
+
+                <ImageUploader
+                  apiUrl={API_URL}
+                  token={getToken()}
+                  folder="projects"
+                  max={MAX_PROJECT_IMAGES}
+                  current={uploadedMedia.length}
+                  onUploaded={onImagesUploaded}
+                  onNotice={showNotice}
+                  labels={{
+                    choose: t("form.uploader.choose"),
+                    hint: t("form.uploader.hint"),
+                    selected: t("form.uploader.selected"),
+                    totalSize: t("form.uploader.totalSize"),
+                    upload: t("form.upload"),
+                    uploading: t("form.uploader.uploading"),
+                    completed: t("form.uploader.completed"),
+                    original: t("form.uploader.original"),
+                    optimized: t("form.uploader.optimized"),
+                    saved: t("form.uploader.saved"),
+                    rejectedFormat: t("form.uploader.rejectedFormat"),
+                    maxReached: t("form.uploader.maxReached"),
+                    uploadFailed: t("form.uploader.uploadFailed"),
+                    uploadedOk: t("form.uploader.uploadedOk"),
+                  }}
+                />
+
+                {uploadedMedia.length > 0 && (
                   <div className="grid grid-cols-4 gap-2 mt-4">
-                    {uploadedImageUrls.map((url, i) => (
-                      <div key={i} className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all cursor-pointer group ${form.imageUrl === url ? "border-orange-500 shadow-lg" : "border-transparent opacity-60 hover:opacity-100"}`} onClick={() => setForm(f => ({ ...f, imageUrl: url }))}>
-                        <img src={url} className="h-full w-full object-cover" />
-                        {form.imageUrl === url && (
+                    {uploadedMedia.map((m) => (
+                      <div key={m.imageUrl} className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all cursor-pointer group ${form.imageUrl === m.imageUrl ? "border-orange-500 shadow-lg" : "border-transparent opacity-60 hover:opacity-100"}`} onClick={() => setForm(f => ({ ...f, imageUrl: m.imageUrl }))}>
+                        <img src={m.thumbnailUrl || m.imageUrl} className="h-full w-full object-cover" />
+                        {form.imageUrl === m.imageUrl && (
                           <span className="absolute top-1 left-1 rounded-md bg-orange-500 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-white">
                             {t("form.cover")}
                           </span>
                         )}
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); removeUploadedImage(url); }}
+                          onClick={(e) => { e.stopPropagation(); removeUploadedMedia(m.imageUrl); }}
                           className="absolute top-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white opacity-0 transition group-hover:opacity-100 hover:bg-red-500"
                           aria-label="delete"
                         >
