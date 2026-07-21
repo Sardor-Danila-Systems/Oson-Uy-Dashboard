@@ -33,6 +33,7 @@ export const UZB_LOCATIONS: LocationData[] = [
       "Yangiyul (Янгиюль)",
       "Bekabad District (Бекабадский р-н)",
       "Bostanlyk (Бостанлыкский)",
+      "Gazalkent (Газалкент)",
       "Buka (Букинский)",
       "Chinaz (Чиназский)",
       "Kibray (Кибрайский)",
