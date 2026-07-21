@@ -36,6 +36,8 @@ import {
   Lock,
   FileText,
   BarChart2,
+  Search,
+  X,
 } from "lucide-react";
 import { UZB_LOCATIONS } from "@/lib/locations";
 import { useTranslations, useLocale } from "next-intl";
@@ -128,6 +130,7 @@ export default function ProjectsPage() {
   const tc = useTranslations("Common");
   const locale = useLocale();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [search, setSearch] = useState("");
   const [form, setForm] = useState<ProjectForm>(defaultForm);
   const [uploadedMedia, setUploadedMedia] = useState<UploadedImage[]>([]);
   const [notice, setNotice] = useState<{ msg: string; type: "success" | "error" } | null>(null);
@@ -138,6 +141,15 @@ export default function ProjectsPage() {
   const [activeDeveloperId, setActiveDeveloperId] = useState<number | null>(null);
   const [accountRole, setAccountRole] = useState<"OWNER" | "MANAGER" | "SALES">("OWNER");
   const isOwner = accountRole === "OWNER";
+
+  const query = search.trim().toLowerCase();
+  const filteredProjects = query
+    ? projects.filter((p) =>
+        [p.name, p.location, p.district]
+          .filter(Boolean)
+          .some((field) => field.toLowerCase().includes(query)),
+      )
+    : projects;
 
   const resetForm = () => {
     setForm(defaultForm);
@@ -415,10 +427,64 @@ export default function ProjectsPage() {
         </div>
       )}
 
+      {/* Search + count toolbar */}
+      {projects.length > 0 && (
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:max-w-md">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-300" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t("searchPlaceholder")}
+              className="h-14 w-full rounded-2xl border border-slate-100 bg-white pl-12 pr-11 text-sm font-semibold text-slate-800 shadow-sm outline-none transition-all placeholder:font-medium placeholder:text-slate-300 focus:border-[#1E3A8A] focus:ring-4 focus:ring-blue-900/5"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-slate-100 text-slate-400 transition hover:bg-slate-200 hover:text-slate-600"
+                aria-label="clear"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2 self-start rounded-2xl border border-slate-100 bg-slate-50 px-4 py-2.5 sm:self-auto">
+            <Building2 className="h-4 w-4 text-[#1E3A8A]" />
+            <span className="text-sm font-black tabular-nums text-slate-700">
+              {filteredProjects.length}
+              {query ? ` / ${projects.length}` : ""}
+            </span>
+            <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">
+              {t("countLabel")}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Empty search state */}
+      {projects.length > 0 && filteredProjects.length === 0 && (
+        <div className="flex flex-col items-center gap-3 rounded-[2.5rem] border-2 border-dashed border-slate-100 py-16 text-center">
+          <Search className="h-8 w-8 text-slate-200" />
+          <p className="font-bold text-slate-400">{t("searchEmpty")}</p>
+          <button
+            type="button"
+            onClick={() => setSearch("")}
+            className="text-sm font-black uppercase tracking-widest text-[#1E3A8A] hover:underline"
+          >
+            {t("searchReset")}
+          </button>
+        </div>
+      )}
+
       {/* Projects List Grid */}
-      <div className="grid gap-8 sm:grid-cols-2">
-        {projects.map((project) => (
-          <div key={project.id} className="group rounded-[2.5rem] border border-slate-100 bg-white overflow-hidden shadow-sm hover:shadow-2xl transition-all hover:-translate-y-1">
+      <div key={query} className="grid gap-8 sm:grid-cols-2">
+        {filteredProjects.map((project, index) => (
+          <div
+            key={project.id}
+            style={{ animationDelay: `${Math.min(index * 60, 360)}ms`, animationDuration: "500ms", animationFillMode: "both" }}
+            className="group rounded-[2.5rem] border border-slate-100 bg-white overflow-hidden shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl animate-in fade-in slide-in-from-bottom-4">
             <div className="relative h-64 overflow-hidden">
               <img src={project.imageUrl} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" alt={project.name} />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
