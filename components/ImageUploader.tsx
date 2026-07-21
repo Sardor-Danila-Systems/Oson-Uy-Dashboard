@@ -73,6 +73,27 @@ type Staged = {
   optimizedSize?: number;
 };
 
+/** Run async workers with a max concurrency, preserving result order. */
+async function mapLimit<T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let cursor = 0;
+  const runners = Array.from(
+    { length: Math.min(limit, items.length) },
+    async () => {
+      while (cursor < items.length) {
+        const index = cursor++;
+        results[index] = await worker(items[index]);
+      }
+    },
+  );
+  await Promise.all(runners);
+  return results;
+}
+
 function formatBytes(bytes: number): string {
   if (!bytes) return "0 KB";
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
@@ -228,8 +249,10 @@ export function ImageUploader({
     if (!pending.length || isUploading) return;
     setIsUploading(true);
 
-    // One failure never cancels the others.
-    const results = await Promise.all(pending.map((p) => uploadOne(p)));
+    // Upload at most 2 at a time so a constrained backend (512 MB) isn't asked
+    // to hold many large request buffers + Sharp jobs at once. One failure
+    // never cancels the others.
+    const results = await mapLimit(pending, 2, (p) => uploadOne(p));
     const ok = results.filter((r): r is UploadedImage => r !== null);
     const failed = results.length - ok.length;
 
